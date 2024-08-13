@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/Hodik/geo-tracker-be/messaging"
 	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -14,6 +15,7 @@ var db *gorm.DB
 func setup() {
 	setupEnv()
 	setupDB()
+	messaging.Setup()
 }
 
 func setupEnv() {
