@@ -9,7 +9,7 @@ import (
 var TwilioClient *twilio.RestClient
 var TwilioPhoneNumber string
 var TwilioAuthToken string
-var WebhookUrl string
+var TwilioWebhookUrl string
 
 func Setup() {
 	TwilioClient = twilio.NewRestClient()
@@ -26,10 +26,10 @@ func Setup() {
 		panic("TWILIO_AUTH_TOKEN is required")
 	}
 
-	WebhookUrl = os.Getenv("WEBHOOK_URL")
+	TwilioWebhookUrl = os.Getenv("TWILIO_WEBHOOK_URL")
 
-	if WebhookUrl == "" {
-		panic("WEBHOOK_URL is required")
+	if TwilioWebhookUrl == "" {
+		panic("TWILIO_WEBHOOK_URL is required")
 	}
 
 }

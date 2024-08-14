@@ -60,7 +60,9 @@ func getGPSDevice(c *gin.Context) {
 	id := c.Param("id")
 
 	var device GPSDevice
-	result := db.First(&device, id)
+	result := db.Preload("Locations", func(db *gorm.DB) *gorm.DB {
+		return db.Order("created_at DESC")
+	}).First(&device, id)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		c.JSON(404, gin.H{"error": "device not found"})
@@ -110,7 +112,10 @@ func twilioWebhook(c *gin.Context) {
 
 	_, err = ReceiveDeviceLocation(deviceNumber, lat, lon)
 
-	if err != nil {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		c.JSON(404, gin.H{"error": "device not found"})
+		return
+	} else if err != nil {
 		c.JSON(500, gin.H{"error": err})
 		return
 	}
