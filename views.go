@@ -93,8 +93,8 @@ func getDeviceLocation(c *gin.Context) {
 
 func twilioWebhook(c *gin.Context) {
 
-	if !messaging.ValidateWebhook(c) {
-		c.JSON(400, gin.H{"error": "invalid webhook"})
+	if err := messaging.ValidateWebhook(c); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
 
