@@ -8,17 +8,17 @@ import (
 )
 
 func ValidateWebhook(c *gin.Context) error {
-	var params map[string]string
+	params := make(map[string]string)
+	c.Request.ParseForm()
+	for key, value := range c.Request.PostForm {
+		params[key] = value[0]
+	}
 
 	requestValidator := client.NewRequestValidator(TwilioAuthToken)
 
-	if err := c.ShouldBindJSON(&params); err != nil {
-		return err
-	}
+	signature := c.Request.Header.Get("X-Twilio-Signature")
 
-	signature := c.GetHeader("X-Twilio-Signature")
-
-	if !requestValidator.Validate(WebhookUrl, params, signature) {
+	if !requestValidator.Validate(TwilioWebhookUrl, params, signature) {
 		return errors.New("invalid signature")
 	}
 

@@ -18,7 +18,7 @@ func main() {
 	r.PATCH("/devices/:id", updateGPSDevice)
 	r.GET("/devices/:id", getGPSDevice)
 	r.GET("/devices/:id/commands/location", getDeviceLocation)
-	r.GET("/webhooks/messages", twilioWebhook)
+	r.POST("/webhooks/messages", twilioWebhook)
 
 	r.Run()
 }
