@@ -8,7 +8,7 @@ const (
 	GetCurrentLocationCommand string = "999"
 )
 
-func GetDeviceLocation(number string) (err error) {
+func SendGetDeviceLocationCommand(number string) (err error) {
 	_, err = messaging.Send(string(number), GetCurrentLocationCommand)
 	return err
 }

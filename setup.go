@@ -16,6 +16,7 @@ func setup() {
 	setupEnv()
 	setupDB()
 	messaging.Setup()
+	log.Println("Setup complete")
 }
 
 func setupEnv() {
