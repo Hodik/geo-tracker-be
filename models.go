@@ -15,8 +15,10 @@ type Base struct {
 
 type GPSDevice struct {
 	Base
-	Number    string        `gorm:"unique;not null;index" json:"number"`
-	Imei      *uint64       `gorm:"unique" json:"imei"`
+	Imei      string        `gorm:"unique;not null;index" json:"imei"`
+	Password  string        `gorm:"not null" json:"password"`
+	APICookie *string       `json:"api_cookie"`
+	Number    *string       `gorm:"unique;index" json:"number"`
 	Locations []GPSLocation `gorm:"foreignKey:DeviceID" json:"locations"`
 }
 
