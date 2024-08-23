@@ -1,10 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
+	"time"
 
-	"github.com/Hodik/geo-tracker-be/messaging"
 	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -15,7 +16,6 @@ var db *gorm.DB
 func setup() {
 	setupEnv()
 	setupDB()
-	messaging.Setup()
 	log.Println("Setup complete")
 }
 
@@ -37,7 +37,18 @@ func setupDB() {
 
 	var err error
 
-	db, err = gorm.Open(postgres.Open(dbString), &gorm.Config{})
+	retries := 3
+	delay := 2 * time.Second
+
+	for i := 0; i < retries; i++ {
+		db, err = gorm.Open(postgres.Open(dbString), &gorm.Config{})
+		if err == nil {
+			fmt.Println("Connected to the database successfully.")
+			break
+		}
+		fmt.Printf("Failed to connect to the database. Attempt %d/%d. Retrying in %s...\n", i+1, retries, delay)
+		time.Sleep(delay)
+	}
 
 	if err != nil {
 		panic("failed to connect database")
