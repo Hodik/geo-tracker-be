@@ -11,6 +11,9 @@ RUN go mod download
 
 COPY . .
 
+ENV GOARCH=amd64
+ENV GOOS=linux
+
 RUN go build -o main .
 
 FROM alpine:latest
