@@ -74,7 +74,6 @@ func PollDevices() {
 	for {
 		db.Where("tracking = ?", true).Find(&devices)
 
-		log.Default().Println("Polling devices: ", devices)
 		for _, device := range devices {
 			go func() {
 				_, err := device.ReceiveDeviceLocation()

@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"log"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -24,7 +25,11 @@ func createGPSDevice(c *gin.Context) {
 
 	deviceModel := device.ToGPSDevice()
 
+	log.Println("BEFORE:", deviceModel.Tracking)
+
 	db.Create(&deviceModel)
+
+	log.Println("AFTER CREATE:", deviceModel.Tracking)
 
 	c.JSON(201, deviceModel)
 }
