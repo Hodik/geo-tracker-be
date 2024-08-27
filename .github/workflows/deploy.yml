@@ -13,12 +13,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Setup Docker
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y docker.io
-          sudo systemctl start docker
-          sudo systemctl enable docker
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Setup AWS CLI
         uses: aws-actions/configure-aws-credentials@v1
@@ -30,10 +26,12 @@ jobs:
       - name: Login to aws ecr
         run: aws ecr get-login-password | docker login --username AWS --password-stdin ${{ env.ECR_IMAGE }}
 
-      - name: Build and push ECR image
-        run: |
-          docker build -t ${{ env.ECR_IMAGE }} .
-          docker push ${{ env.ECR_IMAGE }}
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ env.ECR_IMAGE }}
 
       - name: Deploy to ECS
         run: ./scripts/deploy.sh
