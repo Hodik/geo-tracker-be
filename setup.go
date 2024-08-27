@@ -16,6 +16,7 @@ var db *gorm.DB
 func setup() {
 	setupEnv()
 	setupDB()
+	GetConfig()
 	log.Println("Setup complete")
 }
 
@@ -56,9 +57,10 @@ func setupDB() {
 
 	log.Println("Database connected")
 
-	err = db.AutoMigrate(&GPSDevice{}, &GPSLocation{})
+	err = db.AutoMigrate(&GPSDevice{}, &GPSLocation{}, &Config{})
 
 	if err != nil {
 		panic("failed to migrate database")
 	}
+
 }
