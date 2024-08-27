@@ -3,15 +3,13 @@ package main
 import (
 	"errors"
 
-	"github.com/Hodik/geo-tracker-be/commands"
-	"github.com/Hodik/geo-tracker-be/messaging"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
 func getGPSDevices(c *gin.Context) {
 	var devices []GPSDevice
-	db.Find(&devices)
+	db.Omit("password").Find(&devices)
 
 	c.JSON(200, devices)
 }
@@ -70,55 +68,4 @@ func getGPSDevice(c *gin.Context) {
 	}
 
 	c.JSON(200, device)
-}
-
-func getDeviceLocation(c *gin.Context) {
-
-	id := c.Param("id")
-	var device GPSDevice
-	result := db.First(&device, id)
-
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		c.JSON(404, gin.H{"error": "device not found"})
-		return
-	}
-
-	err := commands.SendGetDeviceLocationCommand(device.Number)
-
-	if err != nil {
-		c.JSON(500, gin.H{"error": err})
-		return
-	}
-
-	c.JSON(200, gin.H{"message": "command sent"})
-}
-
-func twilioWebhook(c *gin.Context) {
-
-	if err := messaging.ValidateWebhook(c); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
-		return
-	}
-
-	deviceNumber := c.PostForm("From")
-	body := c.PostForm("Body")
-
-	lat, lon, err := ParseLocationMessage(body)
-
-	if err != nil {
-		c.JSON(400, gin.H{"error": err})
-		return
-	}
-
-	_, err = ReceiveDeviceLocation(deviceNumber, lat, lon)
-
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		c.JSON(404, gin.H{"error": "device not found"})
-		return
-	} else if err != nil {
-		c.JSON(500, gin.H{"error": err})
-		return
-	}
-
-	c.JSON(200, gin.H{"message": "location received"})
 }
