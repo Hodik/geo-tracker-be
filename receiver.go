@@ -70,13 +70,27 @@ func (device *GPSDevice) CleanUpLocations() error {
 
 func PollDevices() {
 	var devices []GPSDevice
-	db.Find(&devices)
 
 	for {
+		db.Where("tracking = ?", true).Find(&devices)
+
+		log.Default().Println("Polling devices: ", devices)
 		for _, device := range devices {
-			go device.ReceiveDeviceLocation()
-			go device.CleanUpLocations()
+			go func() {
+				_, err := device.ReceiveDeviceLocation()
+				if err != nil {
+					log.Default().Println("Failed to receive device location", err)
+				}
+				err = device.CleanUpLocations()
+
+				if err != nil {
+					log.Default().Panicln("Failed to clean up locations", err)
+				}
+
+			}()
 		}
-		time.Sleep(30 * time.Second)
+
+		conf := GetConfig()
+		time.Sleep(time.Duration(conf.PollInterval) * time.Second)
 	}
 }

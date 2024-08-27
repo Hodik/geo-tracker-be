@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"io"
@@ -23,10 +24,19 @@ type LocationResponse struct {
 
 var InvalidCookieError = errors.New("Invalid cookie")
 
+func getHTTPClient() *http.Client {
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
+	return client
+}
+
 func createSessionCookie() string {
 	u := "https://www.365gps.net/login.php"
 
-	resp, err := http.Get(u)
+	client := getHTTPClient()
+	resp, err := client.Get(u)
 	if err != nil {
 		panic(err)
 	}
@@ -47,7 +57,7 @@ func createSessionCookie() string {
 }
 
 func login(cookie string, username string, password string) {
-	hc := http.Client{}
+	hc := getHTTPClient()
 	u := "https://www.365gps.net/npost_login.php?lang=en"
 
 	form := url.Values{}
@@ -76,7 +86,7 @@ func login(cookie string, username string, password string) {
 }
 
 func refreshLocation(cookie string, imei string) {
-	hc := http.Client{}
+	hc := getHTTPClient()
 	u := "https://www.365gps.net/post_submit_sendloc.php"
 
 	form := url.Values{}
@@ -119,7 +129,7 @@ func refreshLocation(cookie string, imei string) {
 
 }
 func getLocation(cookie string) (float64, float64, error) {
-	hc := http.Client{}
+	hc := getHTTPClient()
 	u := "https://www.365gps.net/post_map_marker_list.php?timezonemins=-180"
 
 	req, err := http.NewRequest("GET", u, nil)
