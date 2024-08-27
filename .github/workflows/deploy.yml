@@ -21,17 +21,17 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region: ${{ vars.AWS_REGION }}
 
       - name: Login to aws ecr
-        run: aws ecr get-login-password | docker login --username AWS --password-stdin ${{ env.ECR_IMAGE }}
+        run: aws ecr get-login-password | docker login --username AWS --password-stdin ${{ vars.ECR_IMAGE }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
-          tags: ${{ env.ECR_IMAGE }}
+          tags: ${{ vars.ECR_IMAGE }}
 
       - name: Deploy to ECS
         run: ./scripts/deploy.sh
