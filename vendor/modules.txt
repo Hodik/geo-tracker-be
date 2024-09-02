@@ -1,3 +1,9 @@
+# github.com/auth0/go-jwt-middleware/v2 v2.2.2
+## explicit; go 1.22
+github.com/auth0/go-jwt-middleware/v2
+github.com/auth0/go-jwt-middleware/v2/internal/oidc
+github.com/auth0/go-jwt-middleware/v2/jwks
+github.com/auth0/go-jwt-middleware/v2/validator
 # github.com/bytedance/sonic v1.12.1
 ## explicit; go 1.17
 github.com/bytedance/sonic
@@ -223,6 +229,7 @@ github.com/ugorji/go/codec
 golang.org/x/arch/x86/x86asm
 # golang.org/x/crypto v0.26.0
 ## explicit; go 1.20
+golang.org/x/crypto/ed25519
 golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/sha3
 # golang.org/x/net v0.28.0
@@ -271,6 +278,12 @@ google.golang.org/protobuf/proto
 google.golang.org/protobuf/reflect/protoreflect
 google.golang.org/protobuf/reflect/protoregistry
 google.golang.org/protobuf/runtime/protoiface
+# gopkg.in/go-jose/go-jose.v2 v2.6.3
+## explicit
+gopkg.in/go-jose/go-jose.v2
+gopkg.in/go-jose/go-jose.v2/cipher
+gopkg.in/go-jose/go-jose.v2/json
+gopkg.in/go-jose/go-jose.v2/jwt
 # gopkg.in/yaml.v3 v3.0.1
 ## explicit
 gopkg.in/yaml.v3
