@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/Hodik/geo-tracker-be/auth"
 	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -57,7 +58,7 @@ func setupDB() {
 
 	log.Println("Database connected")
 
-	err = db.AutoMigrate(&GPSDevice{}, &GPSLocation{}, &Config{})
+	err = db.AutoMigrate(&GPSDevice{}, &GPSLocation{}, &Config{}, &auth.User{}, &UserSettings{})
 
 	if err != nil {
 		panic("failed to migrate database")
