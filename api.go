@@ -1,6 +1,9 @@
 package main
 
 import (
+	"flag"
+	"log"
+
 	"github.com/Hodik/geo-tracker-be/auth"
 	"github.com/Hodik/geo-tracker-be/middleware"
 	"github.com/gin-gonic/gin"
@@ -11,18 +14,29 @@ func init() {
 }
 
 func main() {
-	r := gin.Default()
+	mode := flag.String("mode", "api", "Mode to run: api or worker")
 
+	flag.Parse()
+
+	switch *mode {
+	case "api":
+		runApi()
+	case "worker":
+		PollDevices()
+	default:
+		log.Fatalln("Unknown mode:", mode)
+	}
+}
+
+func runApi() {
+	r := gin.Default()
 	r.Use(middleware.EnsureValidToken())
 	r.Use(auth.FetchOrCreateUser(db))
-
 	r.GET("/me", getMe)
 	r.PATCH("/me", updateMe)
 	r.GET("/devices", getGPSDevices)
 	r.POST("/devices", createGPSDevice)
 	r.PATCH("/devices/:id", updateGPSDevice)
 	r.GET("/devices/:id", getGPSDevice)
-
-	go PollDevices()
 	r.Run()
 }

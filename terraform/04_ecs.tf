@@ -19,7 +19,7 @@ locals {
 }
 
 # Backend web task definition and service
-resource "aws_ecs_task_definition" "be_task" {
+resource "aws_ecs_task_definition" "api_task" {
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = 512
@@ -33,8 +33,32 @@ resource "aws_ecs_task_definition" "be_task" {
       local.container_vars,
       {
         name       = "backend-api"
-        command    = ["./main"]
+        command    = ["./main", "-mode=api"]
         log_stream = aws_cloudwatch_log_stream.backend_api.name
+      }
+    )
+  )
+  execution_role_arn = aws_iam_role.task_execution.arn
+  task_role_arn      = aws_iam_role.task_role.arn
+}
+
+
+resource "aws_ecs_task_definition" "worker_task" {
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = 512
+  memory                   = 1024
+  family                   = var.project_name
+
+
+  container_definitions = templatefile(
+    "templates/backend-container.json.tpl",
+    merge(
+      local.container_vars,
+      {
+        name       = "backend-worker"
+        command    = ["./main", "-mode=worker"]
+        log_stream = aws_cloudwatch_log_stream.backend_worker.name
       }
     )
   )
@@ -45,7 +69,7 @@ resource "aws_ecs_task_definition" "be_task" {
 resource "aws_ecs_service" "backend_api" {
   name                               = "backend-api"
   cluster                            = aws_ecs_cluster.cluster.id
-  task_definition                    = aws_ecs_task_definition.be_task.arn
+  task_definition                    = aws_ecs_task_definition.api_task.arn
   desired_count                      = 1
   deployment_minimum_healthy_percent = 50
   deployment_maximum_percent         = 200
@@ -58,6 +82,24 @@ resource "aws_ecs_service" "backend_api" {
     container_name   = "backend-api"
     container_port   = var.api_port
   }
+
+  network_configuration {
+    security_groups  = [aws_security_group.ecs_security_group.id]
+    subnets          = [aws_subnet.public1.id, aws_subnet.public2.id]
+    assign_public_ip = true
+  }
+}
+
+resource "aws_ecs_service" "backend_worker" {
+  name                               = "backend-worker"
+  cluster                            = aws_ecs_cluster.cluster.id
+  task_definition                    = aws_ecs_task_definition.worker_task.arn
+  desired_count                      = 1
+  deployment_minimum_healthy_percent = 50
+  deployment_maximum_percent         = 200
+  launch_type                        = "FARGATE"
+  scheduling_strategy                = "REPLICA"
+  enable_execute_command             = true
 
   network_configuration {
     security_groups  = [aws_security_group.ecs_security_group.id]
@@ -164,5 +206,11 @@ resource "aws_cloudwatch_log_group" "backend" {
 
 resource "aws_cloudwatch_log_stream" "backend_api" {
   name           = "backend-api"
+  log_group_name = aws_cloudwatch_log_group.backend.name
+}
+
+
+resource "aws_cloudwatch_log_stream" "backend_worker" {
+  name           = "backend-worker"
   log_group_name = aws_cloudwatch_log_group.backend.name
 }
