@@ -52,3 +52,14 @@ variable "aws_secret_access_key" {
   description = "AWS key secret"
 }
 
+
+variable "auth0_domain" {
+  description = "Auth0 Domain for auth"
+  default     = "dev-q0x1ep2b4jnbc1u8.us.auth0.com"
+}
+
+
+variable "auth0_audience" {
+  description = "Auth0 client id for auth"
+  default     = "mNOR3o8CwsHc6WZiP6mZGQdUDiNshVXb"
+}
