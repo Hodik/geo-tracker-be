@@ -11,7 +11,7 @@ resource "aws_subnet" "public1" {
   vpc_id            = aws_vpc.vpc.id
   availability_zone = var.availability_zones[0]
   tags = {
-    Name = "geo-tracker-be"
+    Name = "geo-tracker-be-1"
   }
 }
 
@@ -20,7 +20,7 @@ resource "aws_subnet" "public2" {
   vpc_id            = aws_vpc.vpc.id
   availability_zone = var.availability_zones[1]
   tags = {
-    Name = "geo-tracker-be"
+    Name = "geo-tracker-be-2"
   }
 }
 

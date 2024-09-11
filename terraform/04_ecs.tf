@@ -26,7 +26,7 @@ resource "aws_ecs_task_definition" "api_task" {
   requires_compatibilities = ["FARGATE"]
   cpu                      = 512
   memory                   = 1024
-  family                   = var.project_name
+  family                   = "${var.project_name}-api"
 
 
   container_definitions = templatefile(
@@ -34,7 +34,7 @@ resource "aws_ecs_task_definition" "api_task" {
     merge(
       local.container_vars,
       {
-        name       = "backend-api"
+        name       = "${var.project_name}-api"
         command    = ["./main", "-mode=api"]
         log_stream = aws_cloudwatch_log_stream.backend_api.name
       }
@@ -50,7 +50,7 @@ resource "aws_ecs_task_definition" "worker_task" {
   requires_compatibilities = ["FARGATE"]
   cpu                      = 512
   memory                   = 1024
-  family                   = var.project_name
+  family                   = "${var.project_name}-worker"
 
 
   container_definitions = templatefile(
@@ -58,9 +58,33 @@ resource "aws_ecs_task_definition" "worker_task" {
     merge(
       local.container_vars,
       {
-        name       = "backend-worker"
+        name       = "${var.project_name}-worker"
         command    = ["./main", "-mode=worker"]
         log_stream = aws_cloudwatch_log_stream.backend_worker.name
+      }
+    )
+  )
+  execution_role_arn = aws_iam_role.task_execution.arn
+  task_role_arn      = aws_iam_role.task_role.arn
+}
+
+
+resource "aws_ecs_task_definition" "migrator_task" {
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = 512
+  memory                   = 1024
+  family                   = "${var.project_name}-migrator"
+
+
+  container_definitions = templatefile(
+    "templates/backend-container.json.tpl",
+    merge(
+      local.container_vars,
+      {
+        name       = "${var.project_name}-migrator"
+        command    = ["./main", "-mode=migrator"]
+        log_stream = aws_cloudwatch_log_stream.backend_migrator.name
       }
     )
   )
@@ -214,5 +238,11 @@ resource "aws_cloudwatch_log_stream" "backend_api" {
 
 resource "aws_cloudwatch_log_stream" "backend_worker" {
   name           = "backend-worker"
+  log_group_name = aws_cloudwatch_log_group.backend.name
+}
+
+
+resource "aws_cloudwatch_log_stream" "backend_migrator" {
+  name           = "backend-migrator"
   log_group_name = aws_cloudwatch_log_group.backend.name
 }

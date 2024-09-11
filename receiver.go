@@ -8,12 +8,16 @@ import (
 
 func (device *GPSDevice) SetAPICookie() {
 	cookie := createSessionCookie()
-	login(cookie, device.Imei, device.Password)
+	login(cookie, *device.Imei, *device.Password)
 	device.APICookie = &cookie
 	db.Save(&device)
 }
 
 func (device *GPSDevice) ReceiveDeviceLocation() (*GPSLocation, error) {
+
+	if device.Imei == nil || device.Password == nil {
+		return nil, errors.New("Non GPS device, cannot get location")
+	}
 
 	log.Default().Println("Polling device", device.ID)
 
@@ -73,7 +77,7 @@ func PollDevices() {
 	var devices []GPSDevice
 
 	for {
-		db.Where("tracking = ?", true).Find(&devices)
+		db.Where("tracking = ? AND imei IS NOT NULL AND password IS NOT NULL", true).Find(&devices)
 
 		log.Default().Println("Pulling locations for ", len(devices), " devices")
 		for _, device := range devices {
