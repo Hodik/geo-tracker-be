@@ -9,20 +9,23 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func init() {
-	setup()
-}
-
 func main() {
-	mode := flag.String("mode", "api", "Mode to run: api or worker")
+	mode := flag.String("mode", "api", "Mode to run: api or worker or migrator")
 
 	flag.Parse()
 
+	log.Println("Launched with mode:", mode)
+
 	switch *mode {
 	case "api":
+		setupApp()
 		runApi()
 	case "worker":
+		setupApp()
 		PollDevices()
+	case "migrator":
+		setupMigrator()
+		setupDB()
 	default:
 		log.Fatalln("Unknown mode:", mode)
 	}
