@@ -7,8 +7,8 @@ import (
 )
 
 type CreateGPSDevice struct {
-	Imei     string `json:"imei" binding:"required"`
-	Password string `json:"password" binding:"required"`
+	Imei     *string `json:"imei"`
+	Password *string `json:"password"`
 
 	Number   *string `json:"number"`
 	Tracking *bool   `json:"tracking"`
@@ -95,7 +95,7 @@ func (u *UpdateGPSDevice) ToGPSDevice(existing *GPSDevice) *GPSDevice {
 	}
 
 	if u.Imei != nil {
-		existing.Imei = *u.Imei
+		existing.Imei = u.Imei
 	}
 
 	if u.Tracking != nil {

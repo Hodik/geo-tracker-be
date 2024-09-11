@@ -1,14 +1,15 @@
 version: "3"
 services:
   db:
-    image: postgres
+    image: postgis/postgis # Use the PostGIS image
     restart: always
     environment:
       POSTGRES_USER: default
       POSTGRES_PASSWORD: default
-      POSTGRES_DB: geo_tracker
+      POSTGRES_DB: postgres
     volumes:
       - ./data:/var/lib/postgresql/data
+      - ./db:/docker-entrypoint-initdb.d
     ports:
       - 5432:5432
 
@@ -21,6 +22,7 @@ services:
     env_file:
       - .env
     depends_on:
+      - migrator
       - db
     command: ["./main", "-mode=api"]
 
@@ -31,5 +33,16 @@ services:
     env_file:
       - .env
     depends_on:
+      - migrator
       - db
     command: ["./main", "-mode=worker"]
+
+  migrator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    depends_on:
+      - db
+    command: ["./main", "-mode=migrator"]

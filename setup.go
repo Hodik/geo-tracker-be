@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/Hodik/geo-tracker-be/auth"
@@ -14,10 +15,17 @@ import (
 
 var db *gorm.DB
 
-func setup() {
+func setupApp() {
 	setupEnv()
-	setupDB()
+	setupDBConnection()
+	waitForMigratedDB()
 	GetConfig()
+	log.Println("Setup complete")
+}
+
+func setupMigrator() {
+	setupEnv()
+	setupDBConnection()
 	log.Println("Setup complete")
 }
 
@@ -30,7 +38,7 @@ func setupEnv() {
 	log.Println("Environment loaded")
 }
 
-func setupDB() {
+func setupDBConnection() {
 	dbString := os.Getenv("DB_STRING")
 
 	if dbString == "" {
@@ -58,10 +66,86 @@ func setupDB() {
 
 	log.Println("Database connected")
 
-	err = db.AutoMigrate(&GPSDevice{}, &GPSLocation{}, &Config{}, &auth.User{}, &UserSettings{})
+}
+
+func setupDB() {
+	var err error
+
+	var migration Migration
+	result := db.FirstOrCreate(&migration, Migration{Status: false})
+
+	if result.Error == nil {
+		migration.Status = false
+		db.Save(migration)
+	}
+
+	if err = installDBExtensions(); err != nil {
+		panic(err)
+	}
+
+	log.Println("Installed DB Extensions")
+
+	if err = CreateCommunityTypeEnum(); err != nil {
+		panic(err)
+	}
+
+	log.Println("Created DB types")
+
+	err = db.AutoMigrate(&GPSDevice{}, &GPSLocation{}, &Config{}, &auth.User{}, &UserSettings{}, &Event{}, &Comment{}, &Notification{}, &Community{}, &AreaOfInterest{}, &Migration{})
 
 	if err != nil {
 		panic("failed to migrate database")
 	}
 
+	result = db.FirstOrCreate(&migration, Migration{Status: false})
+
+	if result.Error != nil {
+		panic(result.Error)
+	}
+
+	migration.Status = true
+	result = db.Save(&migration)
+
+	if result.Error != nil {
+		panic(result.Error)
+	}
+}
+
+func waitForMigratedDB() {
+	var migration Migration
+
+	retries := 5
+	delay := 5 * time.Second
+
+	for i := 0; i < retries; i++ {
+		result := db.First(&migration)
+
+		if result.Error == nil && migration.Status {
+			log.Println("DB is migrated, continue")
+			break
+		}
+
+		log.Printf("DB is not migrated. Attempt %d/%d. Retrying in %s...\n", i+1, retries, delay)
+		time.Sleep(delay)
+	}
+
+	if !migration.Status {
+		panic("DB is still not migrated, exiting")
+	}
+}
+
+func installDBExtensions() error {
+	result := db.Exec("CREATE EXTENSION IF NOT EXISTS postgis;") // Add IF NOT EXISTS
+
+	if result.Error != nil {
+		// Check if the error message contains the "already exists" SQL error or other errors
+		if strings.Contains(result.Error.Error(), "duplicate key value") {
+			// Log and ignore the error
+			log.Println("PostGIS extension already exists, skipping creation.")
+			return nil
+		}
+		// If it's a different error, return it
+		return result.Error
+	}
+	return nil
 }
