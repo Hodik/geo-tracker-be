@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql/driver"
 	"errors"
+	"fmt"
 	"log"
 	"time"
 
@@ -58,54 +59,54 @@ type Migration struct {
 
 type Event struct {
 	Base
-	Title        string    `gorm:"not null" json:"title"`
-	Description  string    `json:"description"`
-	Type         string    `json:"type"`
-	Status       string    `json:"string"`
-	IsPublic     bool      `gorm:"default:true;not null" json:"is_public"`
-	Latitude     float64   `gorm:"not null" json:"latitude"`
-	Longitude    float64   `gorm:"not null" json:"longitude"`
-	CreatedBy    auth.User `json:"-"`
-	CreatedByID  uint      `gorm:"not null" json:"created_by_id"`
-	LinkedEvents []Event   `gorm:"many2many:event_linked"`
+	Title        string     `gorm:"not null" json:"title"`
+	Description  string     `json:"description"`
+	Type         string     `json:"type"`
+	Status       string     `json:"string"`
+	IsPublic     bool       `gorm:"default:true;not null" json:"is_public"`
+	Latitude     float64    `gorm:"not null" json:"latitude"`
+	Longitude    float64    `gorm:"not null" json:"longitude"`
+	CreatedBy    *auth.User `json:"-"`
+	CreatedByID  uint       `gorm:"not null" json:"created_by_id"`
+	LinkedEvents []Event    `gorm:"many2many:event_linked"`
 }
 
 type Comment struct {
 	Base
-	Content     string    `gorm:"not null" json:"content"`
-	CreatedBy   auth.User `json:"-"`
-	CreatedByID uint      `gorm:"not null" json:"created_by_id"`
-	Event       Event     `json:"-"`
-	EventID     uint      `gorm:"not null" json:"event_id"`
+	Content     string     `gorm:"not null" json:"content"`
+	CreatedBy   *auth.User `json:"-"`
+	CreatedByID uint       `gorm:"not null" json:"created_by_id"`
+	Event       Event      `json:"-"`
+	EventID     uint       `gorm:"not null" json:"event_id"`
 }
 
 type Notification struct {
 	Base
-	Message string    `gorm:"not null" json:"message"`
-	User    auth.User `json:"-"`
-	UserID  uint      `gorm:"not null" json:"user_id"`
-	Event   Event     `json:"-"`
-	EventID uint      `gorm:"not null" json:"event_id"`
-	IsRead  bool      `gorm:"not null;default:false"`
+	Message string     `gorm:"not null" json:"message"`
+	User    *auth.User `json:"-"`
+	UserID  uint       `gorm:"not null" json:"user_id"`
+	Event   Event      `json:"-"`
+	EventID uint       `gorm:"not null" json:"event_id"`
+	IsRead  bool       `gorm:"not null;default:false"`
 }
 
 type Community struct {
 	Base
 	Name        string        `gorm:"not null;unique" json:"name"`
-	Description string        `json:"description"`
-	Type        CommunityType `gorm:"type:community_type;default:'public'"`
-	Admin       auth.User     `json:"-"`
+	Description *string       `json:"description"`
+	Type        CommunityType `gorm:"type:community_type;default:'public'" json:"type"`
+	Admin       *auth.User    `json:"admin"`
 	AdminID     uint          `gorm:"not null" json:"admin_id"`
-	Members     []auth.User   `gorm:"many2many:community_members" json:"-"`
-	Events      []Event       `gorm:"many2many:event_communities" json:"-"`
+	Members     []auth.User   `gorm:"many2many:community_members" json:"members"`
+	Events      []Event       `gorm:"many2many:event_communities" json:"events"`
 	PolygonArea string        `gorm:"type:GEOMETRY(POLYGON,4326);not null" json:"polygon_area"`
 }
 
 type AreaOfInterest struct {
 	Base
-	User        auth.User `json:"-"`
-	UserID      uint      `gorm:"not null" json:"user_id"`
-	PolygonArea string    `gorm:"type:GEOMETRY(POLYGON,4326);not null" json:"polygon_area"`
+	User        *auth.User `json:"-"`
+	UserID      uint       `gorm:"not null" json:"user_id"`
+	PolygonArea string     `gorm:"type:GEOMETRY(POLYGON,4326);not null" json:"polygon_area"`
 }
 
 type CommunityType string
@@ -116,7 +117,14 @@ const (
 )
 
 func (ct *CommunityType) Scan(value interface{}) error {
-	*ct = CommunityType(value.([]byte))
+	switch v := value.(type) {
+	case string:
+		*ct = CommunityType(v) // value is already a string
+	case []byte:
+		*ct = CommunityType(string(v)) // value is a byte slice, convert to string
+	default:
+		return fmt.Errorf("unsupported scan type for CommunityType: %T", value)
+	}
 	return nil
 }
 

@@ -97,6 +97,12 @@ func setupDB() {
 		panic("failed to migrate database")
 	}
 
+	err = createDBIndexes()
+
+	if err != nil {
+		log.Panicln("failed to create DB indexes: ", err)
+	}
+
 	result = db.FirstOrCreate(&migration, Migration{Status: false})
 
 	if result.Error != nil {
@@ -147,5 +153,25 @@ func installDBExtensions() error {
 		// If it's a different error, return it
 		return result.Error
 	}
+	return nil
+}
+
+func createDBIndexes() error {
+	result := db.Exec("CREATE INDEX idx_area_of_interest_geom ON area_of_interests USING GIST (polygon_area)")
+
+	if result.Error != nil {
+		if !strings.Contains(result.Error.Error(), "already exists") {
+			return result.Error
+		}
+	}
+
+	result = db.Exec("CREATE INDEX idx_community_geom ON communities USING GIST (polygon_area)")
+
+	if result.Error != nil {
+		if !strings.Contains(result.Error.Error(), "already exists") {
+			return result.Error
+		}
+	}
+
 	return nil
 }
