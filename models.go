@@ -92,14 +92,16 @@ type Notification struct {
 
 type Community struct {
 	Base
-	Name        string        `gorm:"not null;unique" json:"name"`
-	Description *string       `json:"description"`
-	Type        CommunityType `gorm:"type:community_type;default:'public'" json:"type"`
-	Admin       *auth.User    `json:"admin"`
-	AdminID     uint          `gorm:"not null" json:"admin_id"`
-	Members     []auth.User   `gorm:"many2many:community_members" json:"members"`
-	Events      []Event       `gorm:"many2many:event_communities" json:"events"`
-	PolygonArea string        `gorm:"type:GEOMETRY(POLYGON,4326);not null" json:"polygon_area"`
+	Name            string        `gorm:"not null;unique" json:"name"`
+	Description     *string       `json:"description"`
+	Type            CommunityType `gorm:"type:community_type;default:'public'" json:"type"`
+	AppearsInSearch bool          `gorm:"not null;default:true" json:"appears_in_search"`
+	Admin           *auth.User    `json:"admin"`
+	AdminID         uint          `gorm:"not null" json:"admin_id"`
+	Members         []auth.User   `gorm:"many2many:community_members" json:"members"`
+	Events          []Event       `gorm:"many2many:event_communities" json:"events"`
+	PolygonArea     string        `gorm:"type:GEOMETRY(POLYGON,4326);not null" json:"polygon_area"`
+	TrackingDevices []GPSDevice   `gorm:"many2many:community_tracking" json:"tracking_devices"`
 }
 
 type AreaOfInterest struct {
