@@ -10,7 +10,12 @@ import (
 
 func getGPSDevices(c *gin.Context) {
 	var devices []GPSDevice
-	db.Omit("password").Find(&devices)
+	result := db.Omit("password").Find(&devices)
+
+	if result.Error != nil {
+		c.JSON(500, gin.H{"error": result.Error.Error()})
+		return
+	}
 
 	c.JSON(200, devices)
 }
@@ -25,7 +30,13 @@ func createGPSDevice(c *gin.Context) {
 	}
 
 	deviceModel := device.ToGPSDevice(user)
-	db.Create(&deviceModel)
+	result := db.Create(&deviceModel)
+
+	if result.Error != nil {
+		c.JSON(500, gin.H{"error": result.Error.Error()})
+		return
+	}
+
 	c.JSON(201, deviceModel)
 }
 
@@ -49,7 +60,12 @@ func updateGPSDevice(c *gin.Context) {
 
 	device.ToGPSDevice(&deviceModel)
 
-	db.Save(&deviceModel)
+	result = db.Save(&deviceModel)
+
+	if result.Error != nil {
+		c.JSON(500, gin.H{"error": result.Error.Error()})
+		return
+	}
 
 	c.JSON(200, deviceModel)
 }
@@ -105,8 +121,19 @@ func updateMe(c *gin.Context) {
 		c.JSON(500, gin.H{"error": err})
 	}
 
-	db.Save(user)
-	db.Save(userSettings)
+	result := db.Save(user)
+
+	if result.Error != nil {
+		c.JSON(500, gin.H{"error": result.Error.Error()})
+		return
+	}
+
+	result = db.Save(userSettings)
+
+	if result.Error != nil {
+		c.JSON(500, gin.H{"error": result.Error.Error()})
+		return
+	}
 
 	c.JSON(200, ToUserProfile(user, userSettings))
 }
@@ -127,7 +154,13 @@ func createAreaOfInterest(c *gin.Context) {
 		return
 	}
 
-	db.Create(&aoiModel)
+	result := db.Create(&aoiModel)
+
+	if result.Error != nil {
+		c.JSON(500, gin.H{"error": result.Error.Error()})
+		return
+	}
+
 	c.JSON(201, aoiModel)
 }
 
@@ -158,7 +191,13 @@ func createCommunity(c *gin.Context) {
 		return
 	}
 
-	db.Create(&comminuty)
+	result := db.Create(&comminuty)
+
+	if result.Error != nil {
+		c.JSON(500, gin.H{"error": result.Error.Error()})
+		return
+	}
+
 	c.JSON(201, comminuty)
 }
 
@@ -188,7 +227,13 @@ func updateCommunity(c *gin.Context) {
 		return
 	}
 
-	db.Save(&comminuty)
+	result = db.Save(&comminuty)
+
+	if result.Error != nil {
+		c.JSON(500, gin.H{"error": result.Error.Error()})
+		return
+	}
+
 	c.JSON(201, comminuty)
 }
 
@@ -199,6 +244,8 @@ func getCommunity(c *gin.Context) {
 	result := db.Select("communities.created_at, communities.deleted_at, communities.updated_at, communities.id, communities.name, communities.description, ST_AsText(polygon_area) AS polygon_area, type, admin_id").Preload("Members", func(db *gorm.DB) *gorm.DB {
 		return db.Order("created_at DESC")
 	}).Preload("Events", func(db *gorm.DB) *gorm.DB {
+		return db.Order("created_at DESC")
+	}).Preload("TrackingDevices", func(db *gorm.DB) *gorm.DB {
 		return db.Order("created_at DESC")
 	}).Joins("Admin").First(&community, id)
 

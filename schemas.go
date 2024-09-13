@@ -50,20 +50,24 @@ type UserProfile struct {
 }
 
 type CreateCommunity struct {
-	Name        string         `json:"name" binding:"required"`
-	Description *string        `json:"description"`
-	Type        *CommunityType `json:"type"`
-	AdminID     *uint          `json:"admin_id"`
-	PolygonArea string         `json:"polygon_area" binding:"required"`
+	Name            string         `json:"name" binding:"required"`
+	Description     *string        `json:"description"`
+	Type            *CommunityType `json:"type"`
+	AppearsInSearch *bool          `json:"appears_in_search"`
+	AdminID         *uint          `json:"admin_id"`
+	PolygonArea     string         `json:"polygon_area" binding:"required"`
+	TrackingDevices *[]uint        `json:"tracking_devices"`
 }
 
 type UpdateCommunity struct {
-	Name        *string        `json:"name"`
-	Description *string        `json:"description"`
-	Type        *CommunityType `json:"type"`
-	PolygonArea *string        `json:"polygon_area"`
-	Members     *[]uint        `json:"members"`
-	Events      *[]uint        `json:"events"`
+	Name            *string        `json:"name"`
+	Description     *string        `json:"description"`
+	Type            *CommunityType `json:"type"`
+	AppearsInSearch *bool          `json:"appears_in_search"`
+	PolygonArea     *string        `json:"polygon_area"`
+	Members         *[]uint        `json:"members"`
+	Events          *[]uint        `json:"events"`
+	TrackingDevices *[]uint        `json:"tracking_devices"`
 }
 
 func (c *CreateCommunity) ToCommunity(creator *auth.User) (*Community, error) {
@@ -89,7 +93,25 @@ func (c *CreateCommunity) ToCommunity(creator *auth.User) (*Community, error) {
 		Type = *c.Type
 	}
 
-	return &Community{Name: c.Name, Description: c.Description, Type: Type, AdminID: AdminId, PolygonArea: c.PolygonArea}, nil
+	var AppearsInSearch bool
+	if c.AppearsInSearch != nil {
+		AppearsInSearch = *c.AppearsInSearch
+	} else {
+		if Type == PUBLIC {
+			AppearsInSearch = true
+		} else if Type == PRIVATE {
+			AppearsInSearch = false
+		}
+	}
+
+	var devices []GPSDevice
+	if c.TrackingDevices != nil {
+		if result := db.Where("id IN ?", *c.TrackingDevices).Find(&devices); result.Error != nil {
+			return nil, result.Error
+		}
+	}
+
+	return &Community{Name: c.Name, Description: c.Description, Type: Type, AdminID: AdminId, PolygonArea: c.PolygonArea, Members: []auth.User{*creator}, AppearsInSearch: AppearsInSearch, TrackingDevices: devices}, nil
 }
 
 func (u *UpdateCommunity) ToCommunity(existing *Community, user *auth.User) (*Community, error) {
@@ -110,6 +132,10 @@ func (u *UpdateCommunity) ToCommunity(existing *Community, user *auth.User) (*Co
 
 	if u.Description != nil {
 		existing.Description = u.Description
+	}
+
+	if u.AppearsInSearch != nil {
+		existing.AppearsInSearch = *u.AppearsInSearch
 	}
 
 	if u.Type != nil {
@@ -134,6 +160,15 @@ func (u *UpdateCommunity) ToCommunity(existing *Community, user *auth.User) (*Co
 			return nil, result.Error
 		}
 		existing.Events = events
+	}
+
+	if u.TrackingDevices != nil {
+		var devices []GPSDevice
+
+		if result := db.Where("id IN ?", *u.TrackingDevices).Find(&devices); result.Error != nil {
+			return nil, result.Error
+		}
+		existing.TrackingDevices = devices
 	}
 
 	return existing, nil
