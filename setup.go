@@ -91,7 +91,7 @@ func setupDB() {
 
 	log.Println("Created DB types")
 
-	err = db.AutoMigrate(&GPSDevice{}, &GPSLocation{}, &Config{}, &auth.User{}, &UserSettings{}, &Event{}, &Comment{}, &Notification{}, &Community{}, &AreaOfInterest{}, &Migration{})
+	err = db.AutoMigrate(&GPSDevice{}, &GPSLocation{}, &Config{}, &auth.User{}, &UserSettings{}, &Event{}, &Comment{}, &Notification{}, &Community{}, &AreaOfInterest{}, &Migration{}, &CommunityInvite{})
 
 	if err != nil {
 		panic("failed to migrate database")

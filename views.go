@@ -6,6 +6,7 @@ import (
 	"github.com/Hodik/geo-tracker-be/auth"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 func getGPSDevices(c *gin.Context) {
@@ -51,7 +52,7 @@ func updateGPSDevice(c *gin.Context) {
 	id := c.Param("id")
 
 	var deviceModel GPSDevice
-	result := db.First(&deviceModel, id)
+	result := db.Where("id = ?", id).First(&deviceModel)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		c.JSON(404, gin.H{"error": "device not found"})
@@ -76,7 +77,7 @@ func getGPSDevice(c *gin.Context) {
 	var device GPSDevice
 	result := db.Preload("Locations", func(db *gorm.DB) *gorm.DB {
 		return db.Order("created_at DESC")
-	}).First(&device, id)
+	}).Where("id = ?", id).First(&device)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		c.JSON(404, gin.H{"error": "device not found"})
@@ -114,10 +115,8 @@ func updateMe(c *gin.Context) {
 		c.JSON(500, gin.H{"error": err})
 	}
 
-	user = updateMe.ToUser(user)
-	userSettings, err = updateMe.ToSettings(userSettings)
-
-	if err != nil {
+	updateMe.ToUser(user)
+	if err = updateMe.ToSettings(userSettings); err != nil {
 		c.JSON(500, gin.H{"error": err})
 	}
 
@@ -213,31 +212,32 @@ func updateCommunity(c *gin.Context) {
 	id := c.Param("id")
 
 	var community Community
-	result := db.First(&community, id)
+	result := db.Where("id = ?", id).First(&community)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		c.JSON(404, gin.H{"error": "community not found"})
 		return
 	}
 
-	comminuty, err := schema.ToCommunity(&community, user)
+	err := schema.ToCommunity(&community, user)
 
 	if err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
 
-	result = db.Save(&comminuty)
+	result = db.Save(&community)
 
 	if result.Error != nil {
 		c.JSON(500, gin.H{"error": result.Error.Error()})
 		return
 	}
 
-	c.JSON(201, comminuty)
+	c.JSON(201, community)
 }
 
 func getCommunity(c *gin.Context) {
+	user := c.MustGet("user").(*auth.User)
 	id := c.Param("id")
 
 	var community Community
@@ -247,7 +247,7 @@ func getCommunity(c *gin.Context) {
 		return db.Order("created_at DESC")
 	}).Preload("TrackingDevices", func(db *gorm.DB) *gorm.DB {
 		return db.Order("created_at DESC")
-	}).Joins("Admin").First(&community, id)
+	}).Joins("Admin").Where("communities.id = ?", id).First(&community)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		c.JSON(404, gin.H{"error": "community not found"})
@@ -256,6 +256,11 @@ func getCommunity(c *gin.Context) {
 
 	if result.Error != nil {
 		c.JSON(500, gin.H{"error": result.Error.Error()})
+		return
+	}
+
+	if !community.AppearsInSearch && !community.IsMember(user) && community.AdminID != user.ID {
+		c.JSON(403, gin.H{"error": "not allowed to get community details"})
 		return
 	}
 
@@ -272,4 +277,179 @@ func getCommunities(c *gin.Context) {
 	}
 
 	c.JSON(200, communities)
+}
+
+func joinCommunity(c *gin.Context) {
+	user := c.MustGet("user").(*auth.User)
+	id := c.Param("id")
+
+	var community Community
+	result := db.Select("communities.created_at, communities.deleted_at, communities.updated_at, communities.id, communities.name, communities.description, ST_AsText(polygon_area) AS polygon_area, type, admin_id").Preload("Members", func(db *gorm.DB) *gorm.DB {
+		return db.Order("created_at DESC")
+	}).Where("communities.id = ?", id).First(&community)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		c.JSON(404, gin.H{"error": "community not found"})
+		return
+	}
+
+	if result.Error != nil {
+		c.JSON(500, gin.H{"error": result.Error.Error()})
+		return
+	}
+
+	if community.Type != PUBLIC {
+		c.JSON(403, gin.H{"error": "can only join public communities"})
+		return
+	}
+
+	if community.IsMember(user) {
+		c.JSON(403, gin.H{"error": "already a member of community"})
+		return
+	}
+
+	community.Members = append(community.Members, *user)
+	result = db.Save(community)
+
+	if result.Error != nil {
+		c.JSON(500, gin.H{"error": result.Error.Error()})
+		return
+	}
+
+	c.JSON(200, community)
+}
+
+func createCommunityInvite(c *gin.Context) {
+	user := c.MustGet("user").(*auth.User)
+
+	var schema CreateCommunityInvite
+
+	if err := c.ShouldBindJSON(&schema); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	ci, err := schema.ToCommunityInvite(user)
+
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	result := db.Create(&ci)
+
+	if result.Error != nil {
+		c.JSON(500, gin.H{"error": result.Error.Error()})
+		return
+	}
+
+	c.JSON(200, ci)
+}
+
+func updateCommunityInvite(c *gin.Context) {
+	user := c.MustGet("user").(*auth.User)
+
+	var schema UpdateCommunityInvite
+
+	if err := c.ShouldBindJSON(&schema); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	id := c.Param("id")
+
+	var ci CommunityInvite
+	result := db.Where("id = ?", id).First(&ci)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		c.JSON(404, gin.H{"error": "community invite not found"})
+		return
+	}
+
+	if err := schema.ToCommunityInvite(&ci, user); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	err := db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Save(ci).Error; err != nil {
+			return err
+		}
+
+		if *ci.Accepted {
+			var comminuty *Community
+			if err := db.Where("id = ?", ci.CommunityID).Preload("Members").First(comminuty).Error; err != nil {
+				return err
+			}
+
+			comminuty.Members = append(comminuty.Members, *user)
+			if err := db.Save(comminuty).Error; err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, ci)
+}
+
+func deleteCommunityInvite(c *gin.Context) {
+	user := c.MustGet("user").(*auth.User)
+
+	id := c.Param("id")
+
+	var ci CommunityInvite
+	result := db.Where("id = ?", id).Joins("Community").First(&ci)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		c.JSON(404, gin.H{"error": "community invite not found"})
+		return
+	}
+
+	if ci.Accepted != nil {
+		c.JSON(400, gin.H{"error": "cannot delete accepted or declined invite"})
+		return
+	}
+
+	if user.ID != ci.CreatorID && user.ID != ci.Community.AdminID {
+		c.JSON(403, gin.H{"error": "only creator of community invite or community admin cab delete invite"})
+		return
+	}
+
+	if err := db.Delete(&ci).Error; err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.Status(204)
+}
+
+func getCommunityInvitesUser(c *gin.Context) {
+	user := c.MustGet("user").(*auth.User)
+
+	var communityInvites []CommunityInvite
+	if err := db.Where("user_id = ?", user.ID).Order(clause.OrderByColumn{Column: clause.Column{Name: "created_at"}, Desc: true}).Find(&communityInvites).Error; err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, communityInvites)
+}
+
+func getCommunityInvitesCommunity(c *gin.Context) {
+	id := c.Param("id")
+
+	var communityInvites []CommunityInvite
+	if err := db.Where("community_id = ?", id).Order(clause.OrderByColumn{Column: clause.Column{Name: "created_at"}, Desc: true}).Find(&communityInvites).Error; err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, communityInvites)
 }
