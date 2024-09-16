@@ -37,6 +37,7 @@ func runApi() {
 	r.Use(auth.FetchOrCreateUser(db))
 	r.GET("/me", getMe)
 	r.PATCH("/me", updateMe)
+	r.GET("/me/community-invites", getCommunityInvitesUser)
 	r.GET("/me/areas-of-interest", getMyAreasOfInterest)
 	r.GET("/devices", getGPSDevices)
 	r.POST("/devices", createGPSDevice)
@@ -47,5 +48,10 @@ func runApi() {
 	r.PATCH("/communities/:id", updateCommunity)
 	r.GET("/communities/:id", getCommunity)
 	r.GET("/communities", getCommunities)
+	r.POST("/communities/:id/join", joinCommunity)
+	r.GET("/communities/:id/invites", getCommunityInvitesCommunity)
+	r.POST("/community-invites", createCommunityInvite)
+	r.PATCH("/community-invites/:id", updateCommunityInvite)
+	r.DELETE("/community-invites/:id", deleteCommunityInvite)
 	r.Run()
 }
