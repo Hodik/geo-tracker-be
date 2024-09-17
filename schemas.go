@@ -33,13 +33,8 @@ type UpdateUser struct {
 	Name *string `json:"name"`
 }
 
-type UpdateSettings struct {
-	TrackingDevices *[]uuid.UUID `json:"tracking_devices"`
-}
-
 type UpdateMe struct {
-	User     *UpdateUser     `json:"user"`
-	Settings *UpdateSettings `json:"settings"`
+	User *UpdateUser `json:"user"`
 }
 
 type UserSettingsOut struct {
@@ -67,9 +62,6 @@ type UpdateCommunity struct {
 	Type            *CommunityType `json:"type"`
 	AppearsInSearch *bool          `json:"appears_in_search"`
 	PolygonArea     *string        `json:"polygon_area"`
-	Members         *[]uuid.UUID   `json:"members"`
-	Events          *[]uuid.UUID   `json:"events"`
-	TrackingDevices *[]uuid.UUID   `json:"tracking_devices"`
 }
 
 type CreateCommunityInvite struct {
@@ -79,6 +71,18 @@ type CreateCommunityInvite struct {
 
 type UpdateCommunityInvite struct {
 	Accepted bool `json:"accepted" binding:"required"`
+}
+
+type TrackDevice struct {
+	DeviceID uuid.UUID `json:"device_id" binding:"required"`
+}
+
+type AddEvent struct {
+	EventID uuid.UUID `json:"event_id" binding:"required"`
+}
+
+type AddMember struct {
+	UserID uuid.UUID `json:"user_id" binding:"required"`
 }
 
 func (c *CreateCommunityInvite) ToCommunityInvite(creator *auth.User) (*CommunityInvite, error) {
@@ -202,31 +206,6 @@ func (u *UpdateCommunity) ToCommunity(existing *Community, user *auth.User) erro
 		existing.Type = *u.Type
 	}
 
-	if u.Members != nil {
-		var members []auth.User
-		if result := db.Where("id IN ?", *u.Members).Find(&members); result.Error != nil {
-			return result.Error
-		}
-		existing.Members = members
-	}
-
-	if u.Events != nil {
-		var events []Event
-		if result := db.Where("id IN ?", *u.Events).Find(&events); result.Error != nil {
-			return result.Error
-		}
-		existing.Events = events
-	}
-
-	if u.TrackingDevices != nil {
-		var devices []GPSDevice
-
-		if result := db.Where("id IN ?", *u.TrackingDevices).Find(&devices); result.Error != nil {
-			return result.Error
-		}
-		existing.TrackingDevices = devices
-	}
-
 	return nil
 }
 
@@ -279,26 +258,6 @@ func (u *UpdateMe) ToUser(existing *auth.User) {
 	if u.User.Name != nil {
 		existing.Name = u.User.Name
 	}
-}
-
-func (u *UpdateMe) ToSettings(existing *UserSettings) error {
-	if u.Settings == nil {
-		return nil
-	}
-
-	if u.Settings.TrackingDevices != nil {
-		if err := db.Model(&existing).Association("TrackingDevices").Clear(); err != nil {
-			return err
-		}
-
-		var devices []GPSDevice
-		if result := db.Where("id IN ?", *u.Settings.TrackingDevices).Find(&devices); result.Error != nil {
-			return result.Error
-		}
-		existing.TrackingDevices = devices
-	}
-
-	return nil
 }
 
 func ToUserProfile(u *auth.User, settings *UserSettings) *UserProfile {
