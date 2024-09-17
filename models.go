@@ -167,7 +167,7 @@ func CreateCommunityTypeEnum() error {
 
 func GetUserSettings(user *auth.User) (*UserSettings, error) {
 	var userSettings UserSettings
-	settingsResult := db.Preload("TrackingDevices").First(&userSettings)
+	settingsResult := db.Preload("TrackingDevices").Where("user_id = ?", user.ID).First(&userSettings)
 
 	if errors.Is(settingsResult.Error, gorm.ErrRecordNotFound) {
 		userSettings = UserSettings{UserID: user.ID}
@@ -189,4 +189,14 @@ func (c *Community) IsMember(user *auth.User) bool {
 	}
 
 	return false
+}
+
+func (community *Community) Fetch(id string) error {
+	return db.Select("communities.created_at, communities.deleted_at, communities.updated_at, communities.id, communities.name, communities.description, ST_AsText(polygon_area) AS polygon_area, type, admin_id").Preload("Members", func(db *gorm.DB) *gorm.DB {
+		return db.Order("created_at DESC")
+	}).Preload("Events", func(db *gorm.DB) *gorm.DB {
+		return db.Order("created_at DESC")
+	}).Preload("TrackingDevices", func(db *gorm.DB) *gorm.DB {
+		return db.Order("created_at DESC")
+	}).Joins("Admin").Where("communities.id = ?", id).First(&community).Error
 }
