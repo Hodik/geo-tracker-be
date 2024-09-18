@@ -4,6 +4,8 @@ import (
 	"errors"
 	"log"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 func (device *GPSDevice) SetAPICookie() {
@@ -60,7 +62,7 @@ func (device *GPSDevice) CleanUpLocations() error {
 		return err
 	}
 
-	var recentIDs []uint
+	var recentIDs []uuid.UUID
 	for _, location := range recentLocations {
 		recentIDs = append(recentIDs, location.ID)
 	}

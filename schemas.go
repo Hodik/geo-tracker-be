@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	"github.com/Hodik/geo-tracker-be/auth"
+	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type CreateAreaOfInterest struct {
@@ -31,13 +33,8 @@ type UpdateUser struct {
 	Name *string `json:"name"`
 }
 
-type UpdateSettings struct {
-	TrackingDevices *[]uint `json:"tracking_devices"`
-}
-
 type UpdateMe struct {
-	User     *UpdateUser     `json:"user"`
-	Settings *UpdateSettings `json:"settings"`
+	User *UpdateUser `json:"user"`
 }
 
 type UserSettingsOut struct {
@@ -54,9 +51,9 @@ type CreateCommunity struct {
 	Description     *string        `json:"description"`
 	Type            *CommunityType `json:"type"`
 	AppearsInSearch *bool          `json:"appears_in_search"`
-	AdminID         *uint          `json:"admin_id"`
+	AdminID         *uuid.UUID     `json:"admin_id"`
 	PolygonArea     string         `json:"polygon_area" binding:"required"`
-	TrackingDevices *[]uint        `json:"tracking_devices"`
+	TrackingDevices *[]uuid.UUID   `json:"tracking_devices"`
 }
 
 type UpdateCommunity struct {
@@ -65,11 +62,74 @@ type UpdateCommunity struct {
 	Type            *CommunityType `json:"type"`
 	AppearsInSearch *bool          `json:"appears_in_search"`
 	PolygonArea     *string        `json:"polygon_area"`
-	Members         *[]uint        `json:"members"`
-	Events          *[]uint        `json:"events"`
-	TrackingDevices *[]uint        `json:"tracking_devices"`
 }
 
+type CreateCommunityInvite struct {
+	CommunityID uuid.UUID `json:"community_id" binding:"required"`
+	UserID      uuid.UUID `json:"user_id" binding:"required"`
+}
+
+type UpdateCommunityInvite struct {
+	Accepted bool `json:"accepted" binding:"required"`
+}
+
+type TrackDevice struct {
+	DeviceID uuid.UUID `json:"device_id" binding:"required"`
+}
+
+type AddEvent struct {
+	EventID uuid.UUID `json:"event_id" binding:"required"`
+}
+
+type AddMember struct {
+	UserID uuid.UUID `json:"user_id" binding:"required"`
+}
+
+func (c *CreateCommunityInvite) ToCommunityInvite(creator *auth.User) (*CommunityInvite, error) {
+
+	var community Community
+	result := db.Where("communities.id = ?", c.CommunityID).Preload("Members").First(&community)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, errors.New("community doesn't exist")
+	}
+
+	if result.Error != nil {
+		return nil, errors.New(result.Error.Error())
+	}
+
+	var user auth.User
+
+	result = db.Where("users.id = ?", c.UserID).First(&user)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, errors.New("user doesn't exist")
+	}
+
+	if result.Error != nil {
+		return nil, errors.New(result.Error.Error())
+	}
+
+	if creator.ID != community.AdminID {
+		return nil, errors.New("only community's admin can invite users")
+	}
+
+	if community.IsMember(&user) {
+		return nil, errors.New("user is already a member of community")
+	}
+
+	return &CommunityInvite{UserID: c.UserID, CommunityID: c.CommunityID, CreatorID: creator.ID}, nil
+
+}
+
+func (u *UpdateCommunityInvite) ToCommunityInvite(existing *CommunityInvite, user *auth.User) error {
+	if user.ID != existing.UserID {
+		return errors.New("only invited user can accept")
+	}
+
+	existing.Accepted = &u.Accepted
+	return nil
+}
 func (c *CreateCommunity) ToCommunity(creator *auth.User) (*Community, error) {
 	if err := ValidatePolygonWKT(c.PolygonArea); err != nil {
 		return nil, err
@@ -81,7 +141,7 @@ func (c *CreateCommunity) ToCommunity(creator *auth.User) (*Community, error) {
 		}
 	}
 
-	var AdminId uint
+	var AdminId uuid.UUID
 	if c.AdminID != nil {
 		AdminId = *c.AdminID
 	} else {
@@ -114,14 +174,14 @@ func (c *CreateCommunity) ToCommunity(creator *auth.User) (*Community, error) {
 	return &Community{Name: c.Name, Description: c.Description, Type: Type, AdminID: AdminId, PolygonArea: c.PolygonArea, Members: []auth.User{*creator}, AppearsInSearch: AppearsInSearch, TrackingDevices: devices}, nil
 }
 
-func (u *UpdateCommunity) ToCommunity(existing *Community, user *auth.User) (*Community, error) {
+func (u *UpdateCommunity) ToCommunity(existing *Community, user *auth.User) error {
 	if user.ID != existing.AdminID {
-		return nil, errors.New("only admin can modify community")
+		return errors.New("only admin can modify community")
 	}
 
 	if u.PolygonArea != nil {
 		if err := ValidatePolygonWKT(*u.PolygonArea); err != nil {
-			return nil, err
+			return err
 		}
 		existing.PolygonArea = *u.PolygonArea
 	}
@@ -140,38 +200,13 @@ func (u *UpdateCommunity) ToCommunity(existing *Community, user *auth.User) (*Co
 
 	if u.Type != nil {
 		if *u.Type != PUBLIC && *u.Type != PRIVATE {
-			return nil, errors.New("type should be private or public")
+			return errors.New("type should be private or public")
 		}
 
 		existing.Type = *u.Type
 	}
 
-	if u.Members != nil {
-		var members []auth.User
-		if result := db.Where("id IN ?", *u.Members).Find(&members); result.Error != nil {
-			return nil, result.Error
-		}
-		existing.Members = members
-	}
-
-	if u.Events != nil {
-		var events []Event
-		if result := db.Where("id IN ?", *u.Events).Find(&events); result.Error != nil {
-			return nil, result.Error
-		}
-		existing.Events = events
-	}
-
-	if u.TrackingDevices != nil {
-		var devices []GPSDevice
-
-		if result := db.Where("id IN ?", *u.TrackingDevices).Find(&devices); result.Error != nil {
-			return nil, result.Error
-		}
-		existing.TrackingDevices = devices
-	}
-
-	return existing, nil
+	return nil
 }
 
 func (c *CreateAreaOfInterest) ToAreaOfInterest(creator *auth.User) (*AreaOfInterest, error) {
@@ -215,32 +250,14 @@ func ValidatePolygonWKT(polygon string) error {
 
 	return nil
 }
-func (u *UpdateMe) ToUser(existing *auth.User) *auth.User {
+func (u *UpdateMe) ToUser(existing *auth.User) {
 	if u.User == nil {
-		return existing
+		return
 	}
 
 	if u.User.Name != nil {
 		existing.Name = u.User.Name
 	}
-
-	return existing
-}
-
-func (u *UpdateMe) ToSettings(existing *UserSettings) (*UserSettings, error) {
-	if u.Settings == nil {
-		return existing, nil
-	}
-
-	if u.Settings.TrackingDevices != nil {
-		var devices []GPSDevice
-		if result := db.Where("id IN ?", *u.Settings.TrackingDevices).Find(&devices); result.Error != nil {
-			return nil, result.Error
-		}
-		existing.TrackingDevices = devices
-	}
-
-	return existing, nil
 }
 
 func ToUserProfile(u *auth.User, settings *UserSettings) *UserProfile {
@@ -253,7 +270,8 @@ func (settings *UserSettings) ToUserSettingsOut() *UserSettingsOut {
 
 func (c *CreateGPSDevice) ToGPSDevice(creator *auth.User) *GPSDevice {
 	if c.Imei == nil {
-		*c.Tracking = false
+		defaultTracking := false
+		c.Tracking = &defaultTracking
 	}
 
 	d := &GPSDevice{
@@ -266,7 +284,7 @@ func (c *CreateGPSDevice) ToGPSDevice(creator *auth.User) *GPSDevice {
 	return d
 }
 
-func (u *UpdateGPSDevice) ToGPSDevice(existing *GPSDevice) *GPSDevice {
+func (u *UpdateGPSDevice) ToGPSDevice(existing *GPSDevice) {
 	if u.Number != nil {
 		existing.Number = u.Number
 	}
@@ -278,6 +296,4 @@ func (u *UpdateGPSDevice) ToGPSDevice(existing *GPSDevice) *GPSDevice {
 	if u.Tracking != nil {
 		existing.Tracking = u.Tracking
 	}
-
-	return existing
 }

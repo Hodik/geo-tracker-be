@@ -8,11 +8,12 @@ import (
 	"time"
 
 	"github.com/Hodik/geo-tracker-be/auth"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 type Base struct {
-	ID        uint           `gorm:"primarykey" json:"id"`
+	ID        uuid.UUID      `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at"`
@@ -26,7 +27,7 @@ type GPSDevice struct {
 	APICookie   *string       `json:"api_cookie"`
 	Number      *string       `gorm:"unique;index" json:"number"`
 	Locations   []GPSLocation `gorm:"foreignKey:DeviceID" json:"locations"`
-	CreatedByID *uint         `gorm:"index" json:"created_by"`
+	CreatedByID *uuid.UUID    `gorm:"index" json:"created_by"`
 	CreatedBY   *auth.User    `json:"-"`
 }
 
@@ -34,14 +35,14 @@ type GPSLocation struct {
 	Base
 	Latitude  float64    `gorm:"not null" json:"latitude"`
 	Longitude float64    `gorm:"not null" json:"longitude"`
-	DeviceID  uint       `gorm:"index" json:"device_id"`
+	DeviceID  uuid.UUID  `gorm:"index" json:"device_id"`
 	Device    *GPSDevice `json:"-"`
 }
 
 type UserSettings struct {
 	Base
 	User   auth.User
-	UserID uint
+	UserID uuid.UUID
 
 	TrackingDevices []GPSDevice `gorm:"many2many:user_tracking"`
 }
@@ -67,7 +68,7 @@ type Event struct {
 	Latitude     float64    `gorm:"not null" json:"latitude"`
 	Longitude    float64    `gorm:"not null" json:"longitude"`
 	CreatedBy    *auth.User `json:"-"`
-	CreatedByID  uint       `gorm:"not null" json:"created_by_id"`
+	CreatedByID  uuid.UUID  `gorm:"not null" json:"created_by_id"`
 	LinkedEvents []Event    `gorm:"many2many:event_linked"`
 }
 
@@ -75,18 +76,18 @@ type Comment struct {
 	Base
 	Content     string     `gorm:"not null" json:"content"`
 	CreatedBy   *auth.User `json:"-"`
-	CreatedByID uint       `gorm:"not null" json:"created_by_id"`
+	CreatedByID uuid.UUID  `gorm:"not null" json:"created_by_id"`
 	Event       Event      `json:"-"`
-	EventID     uint       `gorm:"not null" json:"event_id"`
+	EventID     uuid.UUID  `gorm:"not null" json:"event_id"`
 }
 
 type Notification struct {
 	Base
 	Message string     `gorm:"not null" json:"message"`
 	User    *auth.User `json:"-"`
-	UserID  uint       `gorm:"not null" json:"user_id"`
+	UserID  uuid.UUID  `gorm:"not null" json:"user_id"`
 	Event   Event      `json:"-"`
-	EventID uint       `gorm:"not null" json:"event_id"`
+	EventID uuid.UUID  `gorm:"not null" json:"event_id"`
 	IsRead  bool       `gorm:"not null;default:false"`
 }
 
@@ -97,7 +98,7 @@ type Community struct {
 	Type            CommunityType `gorm:"type:community_type;default:'public'" json:"type"`
 	AppearsInSearch bool          `gorm:"not null;default:true" json:"appears_in_search"`
 	Admin           *auth.User    `json:"admin"`
-	AdminID         uint          `gorm:"not null" json:"admin_id"`
+	AdminID         uuid.UUID     `gorm:"not null" json:"admin_id"`
 	Members         []auth.User   `gorm:"many2many:community_members" json:"members"`
 	Events          []Event       `gorm:"many2many:event_communities" json:"events"`
 	PolygonArea     string        `gorm:"type:GEOMETRY(POLYGON,4326);not null" json:"polygon_area"`
@@ -107,8 +108,19 @@ type Community struct {
 type AreaOfInterest struct {
 	Base
 	User        *auth.User `json:"-"`
-	UserID      uint       `gorm:"not null" json:"user_id"`
+	UserID      uuid.UUID  `gorm:"not null" json:"user_id"`
 	PolygonArea string     `gorm:"type:GEOMETRY(POLYGON,4326);not null" json:"polygon_area"`
+}
+
+type CommunityInvite struct {
+	Base
+	Community   Community `json:"-"`
+	CommunityID uuid.UUID `gorm:"not null" json:"community_id"`
+	User        auth.User `json:"-"`
+	UserID      uuid.UUID `gorm:"not null" json:"user_id"`
+	Accepted    *bool     `json:"accepted"`
+	Creator     auth.User `json:"-"`
+	CreatorID   uuid.UUID `gorm:"not null" json:"creator_id"`
 }
 
 type CommunityType string
@@ -155,7 +167,7 @@ func CreateCommunityTypeEnum() error {
 
 func GetUserSettings(user *auth.User) (*UserSettings, error) {
 	var userSettings UserSettings
-	settingsResult := db.Preload("TrackingDevices").First(&userSettings)
+	settingsResult := db.Preload("TrackingDevices").Where("user_id = ?", user.ID).First(&userSettings)
 
 	if errors.Is(settingsResult.Error, gorm.ErrRecordNotFound) {
 		userSettings = UserSettings{UserID: user.ID}
@@ -167,4 +179,24 @@ func GetUserSettings(user *auth.User) (*UserSettings, error) {
 	}
 
 	return &userSettings, nil
+}
+
+func (c *Community) IsMember(user *auth.User) bool {
+	for _, member := range c.Members {
+		if member.ID == user.ID {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (community *Community) Fetch(id string) error {
+	return db.Select("communities.created_at, communities.deleted_at, communities.updated_at, communities.id, communities.name, communities.description, ST_AsText(polygon_area) AS polygon_area, type, admin_id").Preload("Members", func(db *gorm.DB) *gorm.DB {
+		return db.Order("created_at DESC")
+	}).Preload("Events", func(db *gorm.DB) *gorm.DB {
+		return db.Order("created_at DESC")
+	}).Preload("TrackingDevices", func(db *gorm.DB) *gorm.DB {
+		return db.Order("created_at DESC")
+	}).Joins("Admin").Where("communities.id = ?", id).First(&community).Error
 }

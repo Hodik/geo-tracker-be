@@ -5,6 +5,7 @@ go 1.22.6
 require (
 	github.com/auth0/go-jwt-middleware/v2 v2.2.2
 	github.com/gin-gonic/gin v1.10.0
+	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
 	github.com/twilio/twilio-go v1.22.3
 	gorm.io/driver/postgres v1.5.9
