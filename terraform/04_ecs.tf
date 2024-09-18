@@ -105,7 +105,7 @@ resource "aws_ecs_service" "backend_api" {
 
   load_balancer {
     target_group_arn = aws_lb_target_group.target_group.arn
-    container_name   = "backend-api"
+    container_name   = "${var.project_name}-api"
     container_port   = var.api_port
   }
 
