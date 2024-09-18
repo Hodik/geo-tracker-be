@@ -110,6 +110,11 @@ func userTrackDevice(c *gin.Context) {
 		return
 	}
 
+	if userSettings.IsDeviceTracked(&device) {
+		c.JSON(400, gin.H{"error": "user is already tracking this device"})
+		return
+	}
+
 	if err := db.Model(userSettings).Association("TrackingDevices").Append(&device); err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return

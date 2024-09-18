@@ -191,6 +191,36 @@ func (c *Community) IsMember(user *auth.User) bool {
 	return false
 }
 
+func (c *Community) IsDeviceTracked(device *GPSDevice) bool {
+	for _, d := range c.TrackingDevices {
+		if d.ID == device.ID {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (c *Community) IsEventLinked(event *Event) bool {
+	for _, e := range c.Events {
+		if e.ID == event.ID {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (us *UserSettings) IsDeviceTracked(device *GPSDevice) bool {
+	for _, d := range us.TrackingDevices {
+		if d.ID == device.ID {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (community *Community) Fetch(id string) error {
 	return db.Select("communities.created_at, communities.deleted_at, communities.updated_at, communities.id, communities.name, communities.description, ST_AsText(polygon_area) AS polygon_area, type, admin_id").Preload("Members", func(db *gorm.DB) *gorm.DB {
 		return db.Order("created_at DESC")
