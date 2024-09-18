@@ -22,7 +22,7 @@ resource "aws_lb_target_group" "target_group" {
     unhealthy_threshold = 2
     timeout             = 29
     interval            = 30
-    matcher             = "200"
+    matcher             = "401"
   }
 }
 

@@ -10,7 +10,7 @@ resource "aws_db_instance" "db" {
   password                    = var.rds_password
   port                        = "5432"
   engine                      = "postgres"
-  engine_version              = "16"
+  engine_version              = "16.3"
   instance_class              = var.rds_instance_class
   allocated_storage           = "20"
   storage_encrypted           = false
