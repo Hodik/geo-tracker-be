@@ -309,6 +309,11 @@ func communityAddMember(c *gin.Context) {
 		return
 	}
 
+	if community.IsMember(&user) {
+		c.JSON(400, gin.H{"error": "user is already a member of community"})
+		return
+	}
+
 	if err := db.Model(&community).Association("Members").Append(&user); err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
@@ -391,6 +396,11 @@ func communityAddEvent(c *gin.Context) {
 		return
 	}
 
+	if community.IsEventLinked(&event) {
+		c.JSON(400, gin.H{"error": "event is already linked to community"})
+		return
+	}
+
 	if err := db.Model(&community).Association("Events").Append(&event); err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
@@ -470,6 +480,11 @@ func communityTrackDevice(c *gin.Context) {
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		c.JSON(404, gin.H{"error": "device not found"})
+		return
+	}
+
+	if community.IsDeviceTracked(&device) {
+		c.JSON(400, gin.H{"error": "community is already tracking this device"})
 		return
 	}
 
