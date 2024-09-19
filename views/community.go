@@ -1,24 +1,27 @@
-package main
+package views
 
 import (
 	"errors"
 
-	"github.com/Hodik/geo-tracker-be/auth"
+	"github.com/Hodik/geo-tracker-be/models"
+	"github.com/Hodik/geo-tracker-be/schemas"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
-func createCommunity(c *gin.Context) {
-	user := c.MustGet("user").(*auth.User)
-	var schema CreateCommunity
+func CreateCommunity(c *gin.Context) {
+	user := c.MustGet("user").(*models.User)
+	db := c.MustGet("db").(*gorm.DB)
+
+	var schema schemas.CreateCommunity
 
 	if err := c.ShouldBindJSON(&schema); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
 
-	comminuty, err := schema.ToCommunity(user)
+	comminuty, err := schema.ToCommunity(db, user)
 
 	if err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
@@ -35,9 +38,11 @@ func createCommunity(c *gin.Context) {
 	c.JSON(201, comminuty)
 }
 
-func updateCommunity(c *gin.Context) {
-	user := c.MustGet("user").(*auth.User)
-	var schema UpdateCommunity
+func UpdateCommunity(c *gin.Context) {
+	user := c.MustGet("user").(*models.User)
+	db := c.MustGet("db").(*gorm.DB)
+
+	var schema schemas.UpdateCommunity
 
 	if err := c.ShouldBindJSON(&schema); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
@@ -46,8 +51,8 @@ func updateCommunity(c *gin.Context) {
 
 	id := c.Param("id")
 
-	var community Community
-	err := community.Fetch(id)
+	var community models.Community
+	err := community.Fetch(db, id)
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		c.JSON(404, gin.H{"error": "community not found"})
@@ -69,12 +74,14 @@ func updateCommunity(c *gin.Context) {
 	c.JSON(201, community)
 }
 
-func getCommunity(c *gin.Context) {
-	user := c.MustGet("user").(*auth.User)
+func GetCommunity(c *gin.Context) {
+	user := c.MustGet("user").(*models.User)
+	db := c.MustGet("db").(*gorm.DB)
+
 	id := c.Param("id")
 
-	var community Community
-	err := community.Fetch(id)
+	var community models.Community
+	err := community.Fetch(db, id)
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		c.JSON(404, gin.H{"error": "community not found"})
@@ -94,8 +101,10 @@ func getCommunity(c *gin.Context) {
 	c.JSON(200, community)
 }
 
-func getCommunities(c *gin.Context) {
-	var communities []Community
+func GetCommunities(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+
+	var communities []models.Community
 	result := db.Select("communities.created_at, communities.deleted_at, communities.updated_at, communities.id, communities.name, communities.description, ST_AsText(polygon_area) AS polygon_area, type, admin_id").Find(&communities)
 
 	if result.Error != nil {
@@ -106,12 +115,14 @@ func getCommunities(c *gin.Context) {
 	c.JSON(200, communities)
 }
 
-func joinCommunity(c *gin.Context) {
-	user := c.MustGet("user").(*auth.User)
+func JoinCommunity(c *gin.Context) {
+	user := c.MustGet("user").(*models.User)
+	db := c.MustGet("db").(*gorm.DB)
+
 	id := c.Param("id")
 
-	var community Community
-	err := community.Fetch(id)
+	var community models.Community
+	err := community.Fetch(db, id)
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		c.JSON(404, gin.H{"error": "community not found"})
@@ -123,7 +134,7 @@ func joinCommunity(c *gin.Context) {
 		return
 	}
 
-	if community.Type != PUBLIC {
+	if community.Type != models.PUBLIC {
 		c.JSON(403, gin.H{"error": "can only join public communities"})
 		return
 	}
@@ -146,17 +157,18 @@ func joinCommunity(c *gin.Context) {
 	c.JSON(200, community)
 }
 
-func createCommunityInvite(c *gin.Context) {
-	user := c.MustGet("user").(*auth.User)
+func CreateCommunityInvite(c *gin.Context) {
+	user := c.MustGet("user").(*models.User)
+	db := c.MustGet("db").(*gorm.DB)
 
-	var schema CreateCommunityInvite
+	var schema schemas.CreateCommunityInvite
 
 	if err := c.ShouldBindJSON(&schema); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
 
-	ci, err := schema.ToCommunityInvite(user)
+	ci, err := schema.ToCommunityInvite(db, user)
 
 	if err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
@@ -173,10 +185,11 @@ func createCommunityInvite(c *gin.Context) {
 	c.JSON(200, ci)
 }
 
-func updateCommunityInvite(c *gin.Context) {
-	user := c.MustGet("user").(*auth.User)
+func UpdateCommunityInvite(c *gin.Context) {
+	user := c.MustGet("user").(*models.User)
+	db := c.MustGet("db").(*gorm.DB)
 
-	var schema UpdateCommunityInvite
+	var schema schemas.UpdateCommunityInvite
 
 	if err := c.ShouldBindJSON(&schema); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
@@ -185,7 +198,7 @@ func updateCommunityInvite(c *gin.Context) {
 
 	id := c.Param("id")
 
-	var ci CommunityInvite
+	var ci models.CommunityInvite
 	result := db.Where("id = ?", id).First(&ci)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -204,7 +217,7 @@ func updateCommunityInvite(c *gin.Context) {
 		}
 
 		if *ci.Accepted {
-			var comminuty *Community
+			var comminuty *models.Community
 			if err := db.Model(&comminuty).Association("Members").Append(user); err != nil {
 				return err
 			}
@@ -221,12 +234,13 @@ func updateCommunityInvite(c *gin.Context) {
 	c.JSON(200, ci)
 }
 
-func deleteCommunityInvite(c *gin.Context) {
-	user := c.MustGet("user").(*auth.User)
+func DeleteCommunityInvite(c *gin.Context) {
+	user := c.MustGet("user").(*models.User)
+	db := c.MustGet("db").(*gorm.DB)
 
 	id := c.Param("id")
 
-	var ci CommunityInvite
+	var ci models.CommunityInvite
 	result := db.Where("id = ?", id).Joins("Community").First(&ci)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -252,10 +266,11 @@ func deleteCommunityInvite(c *gin.Context) {
 	c.Status(204)
 }
 
-func getCommunityInvitesUser(c *gin.Context) {
-	user := c.MustGet("user").(*auth.User)
+func GetCommunityInvitesUser(c *gin.Context) {
+	user := c.MustGet("user").(*models.User)
+	db := c.MustGet("db").(*gorm.DB)
 
-	var communityInvites []CommunityInvite
+	var communityInvites []models.CommunityInvite
 	if err := db.Where("user_id = ?", user.ID).Order(clause.OrderByColumn{Column: clause.Column{Name: "created_at"}, Desc: true}).Find(&communityInvites).Error; err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
@@ -264,10 +279,12 @@ func getCommunityInvitesUser(c *gin.Context) {
 	c.JSON(200, communityInvites)
 }
 
-func getCommunityInvitesCommunity(c *gin.Context) {
+func GetCommunityInvitesCommunity(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+
 	id := c.Param("id")
 
-	var communityInvites []CommunityInvite
+	var communityInvites []models.CommunityInvite
 	if err := db.Where("community_id = ?", id).Order(clause.OrderByColumn{Column: clause.Column{Name: "created_at"}, Desc: true}).Find(&communityInvites).Error; err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
@@ -276,13 +293,14 @@ func getCommunityInvitesCommunity(c *gin.Context) {
 	c.JSON(200, communityInvites)
 }
 
-func communityAddMember(c *gin.Context) {
-	reqUser := c.MustGet("user").(*auth.User)
+func CommunityAddMember(c *gin.Context) {
+	reqUser := c.MustGet("user").(*models.User)
+	db := c.MustGet("db").(*gorm.DB)
 
 	id := c.Param("id")
 
-	var community Community
-	err := community.Fetch(id)
+	var community models.Community
+	err := community.Fetch(db, id)
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		c.JSON(404, gin.H{"error": "community not found"})
@@ -294,14 +312,14 @@ func communityAddMember(c *gin.Context) {
 		return
 	}
 
-	var schema AddMember
+	var schema schemas.AddMember
 
 	if err := c.ShouldBindJSON(&schema); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
 
-	var user auth.User
+	var user models.User
 	result := db.Where("id = ?", schema.UserID).First(&user)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -322,13 +340,14 @@ func communityAddMember(c *gin.Context) {
 	c.JSON(200, community)
 }
 
-func communityRemoveMember(c *gin.Context) {
-	reqUser := c.MustGet("user").(*auth.User)
+func CommunityRemoveMember(c *gin.Context) {
+	reqUser := c.MustGet("user").(*models.User)
+	db := c.MustGet("db").(*gorm.DB)
 
 	id := c.Param("id")
 
-	var community Community
-	err := community.Fetch(id)
+	var community models.Community
+	err := community.Fetch(db, id)
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		c.JSON(404, gin.H{"error": "community not found"})
@@ -340,14 +359,14 @@ func communityRemoveMember(c *gin.Context) {
 		return
 	}
 
-	var schema AddMember
+	var schema schemas.AddMember
 
 	if err := c.ShouldBindJSON(&schema); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
 
-	var user auth.User
+	var user models.User
 	result := db.Where("id = ?", schema.UserID).First(&user)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -363,13 +382,14 @@ func communityRemoveMember(c *gin.Context) {
 	c.JSON(200, community)
 }
 
-func communityAddEvent(c *gin.Context) {
-	reqUser := c.MustGet("user").(*auth.User)
+func CommunityAddEvent(c *gin.Context) {
+	reqUser := c.MustGet("user").(*models.User)
+	db := c.MustGet("db").(*gorm.DB)
 
 	id := c.Param("id")
 
-	var community Community
-	err := community.Fetch(id)
+	var community models.Community
+	err := community.Fetch(db, id)
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		c.JSON(404, gin.H{"error": "community not found"})
@@ -381,14 +401,14 @@ func communityAddEvent(c *gin.Context) {
 		return
 	}
 
-	var schema AddEvent
+	var schema schemas.AddEvent
 
 	if err := c.ShouldBindJSON(&schema); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
 
-	var event Event
+	var event models.Event
 	result := db.Where("id = ?", schema.EventID).First(&event)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -409,13 +429,14 @@ func communityAddEvent(c *gin.Context) {
 	c.JSON(200, community)
 }
 
-func communityRemoveEvent(c *gin.Context) {
-	reqUser := c.MustGet("user").(*auth.User)
+func CommunityRemoveEvent(c *gin.Context) {
+	reqUser := c.MustGet("user").(*models.User)
+	db := c.MustGet("db").(*gorm.DB)
 
 	id := c.Param("id")
 
-	var community Community
-	err := community.Fetch(id)
+	var community models.Community
+	err := community.Fetch(db, id)
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		c.JSON(404, gin.H{"error": "community not found"})
@@ -427,14 +448,14 @@ func communityRemoveEvent(c *gin.Context) {
 		return
 	}
 
-	var schema AddEvent
+	var schema schemas.AddEvent
 
 	if err := c.ShouldBindJSON(&schema); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
 
-	var event Event
+	var event models.Event
 	result := db.Where("id = ?", schema.EventID).First(&event)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -450,13 +471,14 @@ func communityRemoveEvent(c *gin.Context) {
 	c.JSON(200, community)
 }
 
-func communityTrackDevice(c *gin.Context) {
-	reqUser := c.MustGet("user").(*auth.User)
+func CommunityTrackDevice(c *gin.Context) {
+	reqUser := c.MustGet("user").(*models.User)
+	db := c.MustGet("db").(*gorm.DB)
 
 	id := c.Param("id")
 
-	var community Community
-	err := community.Fetch(id)
+	var community models.Community
+	err := community.Fetch(db, id)
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		c.JSON(404, gin.H{"error": "community not found"})
@@ -468,14 +490,14 @@ func communityTrackDevice(c *gin.Context) {
 		return
 	}
 
-	var schema TrackDevice
+	var schema schemas.TrackDevice
 
 	if err := c.ShouldBindJSON(&schema); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
 
-	var device GPSDevice
+	var device models.GPSDevice
 	result := db.Where("id = ?", schema.DeviceID).First(&device)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -496,13 +518,14 @@ func communityTrackDevice(c *gin.Context) {
 	c.JSON(200, community)
 }
 
-func communityUntrackDevice(c *gin.Context) {
-	reqUser := c.MustGet("user").(*auth.User)
+func CommunityUntrackDevice(c *gin.Context) {
+	reqUser := c.MustGet("user").(*models.User)
+	db := c.MustGet("db").(*gorm.DB)
 
 	id := c.Param("id")
 
-	var community Community
-	err := community.Fetch(id)
+	var community models.Community
+	err := community.Fetch(db, id)
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		c.JSON(404, gin.H{"error": "community not found"})
@@ -514,14 +537,14 @@ func communityUntrackDevice(c *gin.Context) {
 		return
 	}
 
-	var schema TrackDevice
+	var schema schemas.TrackDevice
 
 	if err := c.ShouldBindJSON(&schema); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
 
-	var device GPSDevice
+	var device models.GPSDevice
 	result := db.Where("id = ?", schema.DeviceID).First(&device)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
