@@ -5,17 +5,19 @@ import (
 	"log"
 	"time"
 
+	"github.com/Hodik/geo-tracker-be/models"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
-func (device *GPSDevice) SetAPICookie() {
+func SetAPICookie(db *gorm.DB, device *models.GPSDevice) {
 	cookie := createSessionCookie()
 	login(cookie, *device.Imei, *device.Password)
 	device.APICookie = &cookie
 	db.Save(&device)
 }
 
-func (device *GPSDevice) ReceiveDeviceLocation() (*GPSLocation, error) {
+func ReceiveDeviceLocation(db *gorm.DB, device *models.GPSDevice) (*models.GPSLocation, error) {
 
 	if device.Imei == nil || device.Password == nil {
 		return nil, errors.New("Non GPS device, cannot get location")
@@ -24,13 +26,13 @@ func (device *GPSDevice) ReceiveDeviceLocation() (*GPSLocation, error) {
 	log.Default().Println("Polling device", device.ID)
 
 	if device.APICookie == nil {
-		device.SetAPICookie()
+		SetAPICookie(db, device)
 	}
 
 	lat, lon, err := getLocation(*device.APICookie)
 
 	if errors.Is(err, InvalidCookieError) {
-		device.SetAPICookie()
+		SetAPICookie(db, device)
 
 		lat, lon, err = getLocation(*device.APICookie)
 
@@ -39,7 +41,7 @@ func (device *GPSDevice) ReceiveDeviceLocation() (*GPSLocation, error) {
 		}
 	}
 
-	location := GPSLocation{
+	location := models.GPSLocation{
 		Latitude:  lat,
 		Longitude: lon,
 		DeviceID:  device.ID,
@@ -53,11 +55,11 @@ func (device *GPSDevice) ReceiveDeviceLocation() (*GPSLocation, error) {
 	return &location, nil
 }
 
-func (device *GPSDevice) CleanUpLocations() error {
+func CleanUpLocations(db *gorm.DB, device *models.GPSDevice) error {
 
 	log.Default().Println("Cleaning up locations for device", device.ID)
 
-	var recentLocations []GPSLocation
+	var recentLocations []models.GPSLocation
 	if err := db.Where("device_id = ?", device.ID).Order("created_at desc").Limit(5).Find(&recentLocations).Error; err != nil {
 		return err
 	}
@@ -67,16 +69,16 @@ func (device *GPSDevice) CleanUpLocations() error {
 		recentIDs = append(recentIDs, location.ID)
 	}
 
-	if err := db.Where("device_id = ? AND id NOT IN ?", device.ID, recentIDs).Delete(&GPSLocation{}).Error; err != nil {
+	if err := db.Where("device_id = ? AND id NOT IN ?", device.ID, recentIDs).Delete(&models.GPSLocation{}).Error; err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func PollDevices() {
+func PollDevices(db *gorm.DB) {
 	log.Default().Println("Location server started")
-	var devices []GPSDevice
+	var devices []models.GPSDevice
 
 	for {
 		db.Where("tracking = ? AND imei IS NOT NULL AND password IS NOT NULL", true).Find(&devices)
@@ -84,11 +86,11 @@ func PollDevices() {
 		log.Default().Println("Pulling locations for ", len(devices), " devices")
 		for _, device := range devices {
 			go func() {
-				_, err := device.ReceiveDeviceLocation()
+				_, err := ReceiveDeviceLocation(db, &device)
 				if err != nil {
 					log.Default().Println("Failed to receive device location", err)
 				}
-				err = device.CleanUpLocations()
+				err = CleanUpLocations(db, &device)
 
 				if err != nil {
 					log.Default().Println("Failed to clean up locations", err)
@@ -97,7 +99,7 @@ func PollDevices() {
 			}()
 		}
 
-		conf := GetConfig()
+		conf := GetConfig(db)
 		log.Default().Println("Sleeping for ", conf.PollInterval, " seconds")
 		time.Sleep(time.Duration(conf.PollInterval) * time.Second)
 	}
