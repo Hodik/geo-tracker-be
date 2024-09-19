@@ -1,36 +1,39 @@
-package main
+package views
 
 import (
 	"errors"
 
-	"github.com/Hodik/geo-tracker-be/auth"
+	"github.com/Hodik/geo-tracker-be/models"
+	"github.com/Hodik/geo-tracker-be/schemas"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
-func getMe(c *gin.Context) {
-	user := c.MustGet("user").(*auth.User)
+func GetMe(c *gin.Context) {
+	user := c.MustGet("user").(*models.User)
+	db := c.MustGet("db").(*gorm.DB)
 
-	userSettings, err := GetUserSettings(user)
+	userSettings, err := models.GetUserSettings(db, user)
 
 	if err != nil {
 		c.JSON(500, gin.H{"error": err})
 	}
 
-	c.JSON(200, ToUserProfile(user, userSettings))
+	c.JSON(200, schemas.ToUserProfile(user, userSettings))
 }
 
-func updateMe(c *gin.Context) {
-	user := c.MustGet("user").(*auth.User)
+func UpdateMe(c *gin.Context) {
+	user := c.MustGet("user").(*models.User)
+	db := c.MustGet("db").(*gorm.DB)
 
-	var updateMe UpdateMe
+	var updateMe schemas.UpdateMe
 
 	if err := c.ShouldBindJSON(&updateMe); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
 
-	userSettings, err := GetUserSettings(user)
+	userSettings, err := models.GetUserSettings(db, user)
 
 	if err != nil {
 		c.JSON(500, gin.H{"error": err})
@@ -45,12 +48,14 @@ func updateMe(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, ToUserProfile(user, userSettings))
+	c.JSON(200, schemas.ToUserProfile(user, userSettings))
 }
 
-func createAreaOfInterest(c *gin.Context) {
-	user := c.MustGet("user").(*auth.User)
-	var schema CreateAreaOfInterest
+func CreateAreaOfInterest(c *gin.Context) {
+	user := c.MustGet("user").(*models.User)
+	db := c.MustGet("db").(*gorm.DB)
+
+	var schema schemas.CreateAreaOfInterest
 
 	if err := c.ShouldBindJSON(&schema); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
@@ -74,9 +79,11 @@ func createAreaOfInterest(c *gin.Context) {
 	c.JSON(201, aoiModel)
 }
 
-func getMyAreasOfInterest(c *gin.Context) {
-	user := c.MustGet("user").(*auth.User)
-	var aois []AreaOfInterest
+func GetMyAreasOfInterest(c *gin.Context) {
+	user := c.MustGet("user").(*models.User)
+	db := c.MustGet("db").(*gorm.DB)
+
+	var aois []models.AreaOfInterest
 	result := db.Raw("SELECT id, user_id, ST_AsText(polygon_area) as polygon_area, created_at, updated_at, deleted_at FROM area_of_interests WHERE user_id = ?", user.ID).Scan(&aois)
 
 	if result.Error != nil {
@@ -85,17 +92,18 @@ func getMyAreasOfInterest(c *gin.Context) {
 	c.JSON(200, aois)
 }
 
-func userTrackDevice(c *gin.Context) {
-	user := c.MustGet("user").(*auth.User)
+func UserTrackDevice(c *gin.Context) {
+	user := c.MustGet("user").(*models.User)
+	db := c.MustGet("db").(*gorm.DB)
 
-	var schema TrackDevice
+	var schema schemas.TrackDevice
 
 	if err := c.ShouldBindJSON(&schema); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
 
-	var device GPSDevice
+	var device models.GPSDevice
 	result := db.Where("id = ?", schema.DeviceID).First(&device)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -103,7 +111,7 @@ func userTrackDevice(c *gin.Context) {
 		return
 	}
 
-	userSettings, err := GetUserSettings(user)
+	userSettings, err := models.GetUserSettings(db, user)
 
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
@@ -120,20 +128,21 @@ func userTrackDevice(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, ToUserProfile(user, userSettings))
+	c.JSON(200, schemas.ToUserProfile(user, userSettings))
 }
 
-func userUntrackDevice(c *gin.Context) {
-	user := c.MustGet("user").(*auth.User)
+func UserUntrackDevice(c *gin.Context) {
+	user := c.MustGet("user").(*models.User)
+	db := c.MustGet("db").(*gorm.DB)
 
-	var schema TrackDevice
+	var schema schemas.TrackDevice
 
 	if err := c.ShouldBindJSON(&schema); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
 
-	var device GPSDevice
+	var device models.GPSDevice
 	result := db.Where("id = ?", schema.DeviceID).First(&device)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -141,7 +150,7 @@ func userUntrackDevice(c *gin.Context) {
 		return
 	}
 
-	userSettings, err := GetUserSettings(user)
+	userSettings, err := models.GetUserSettings(db, user)
 
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
@@ -153,5 +162,27 @@ func userUntrackDevice(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, ToUserProfile(user, userSettings))
+	c.JSON(200, schemas.ToUserProfile(user, userSettings))
+}
+
+func GetMyCommunities(c *gin.Context) {
+	user := c.MustGet("user").(*models.User)
+	db := c.MustGet("db").(*gorm.DB)
+
+	var communities []models.Community
+
+	result := db.
+		Table("communities").
+		Joins("JOIN community_members ON community_members.community_id = communities.id").
+		Where("community_members.user_id = ?", user.ID).
+		Select("communities.created_at, communities.deleted_at, communities.updated_at, communities.id, communities.name, communities.description, ST_AsText(polygon_area) AS polygon_area, type, admin_id").
+		Group("communities.id").
+		Find(&communities)
+
+	if result.Error != nil {
+		c.JSON(500, gin.H{"error": result.Error.Error()})
+		return
+	}
+
+	c.JSON(200, communities)
 }

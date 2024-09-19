@@ -1,15 +1,18 @@
-package main
+package views
 
 import (
 	"errors"
 
-	"github.com/Hodik/geo-tracker-be/auth"
+	"github.com/Hodik/geo-tracker-be/models"
+	"github.com/Hodik/geo-tracker-be/schemas"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
-func getGPSDevices(c *gin.Context) {
-	var devices []GPSDevice
+func GetGPSDevices(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+
+	var devices []models.GPSDevice
 	result := db.Omit("password").Find(&devices)
 
 	if result.Error != nil {
@@ -20,9 +23,11 @@ func getGPSDevices(c *gin.Context) {
 	c.JSON(200, devices)
 }
 
-func createGPSDevice(c *gin.Context) {
-	user := c.MustGet("user").(*auth.User)
-	var device CreateGPSDevice
+func CreateGPSDevice(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+	user := c.MustGet("user").(*models.User)
+
+	var device schemas.CreateGPSDevice
 
 	if err := c.ShouldBindJSON(&device); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
@@ -40,8 +45,10 @@ func createGPSDevice(c *gin.Context) {
 	c.JSON(201, deviceModel)
 }
 
-func updateGPSDevice(c *gin.Context) {
-	var device UpdateGPSDevice
+func UpdateGPSDevice(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+
+	var device schemas.UpdateGPSDevice
 
 	if err := c.ShouldBindJSON(&device); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
@@ -50,7 +57,7 @@ func updateGPSDevice(c *gin.Context) {
 
 	id := c.Param("id")
 
-	var deviceModel GPSDevice
+	var deviceModel models.GPSDevice
 	result := db.Where("id = ?", id).First(&deviceModel)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -70,10 +77,12 @@ func updateGPSDevice(c *gin.Context) {
 	c.JSON(200, deviceModel)
 }
 
-func getGPSDevice(c *gin.Context) {
+func GetGPSDevice(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+
 	id := c.Param("id")
 
-	var device GPSDevice
+	var device models.GPSDevice
 	result := db.Preload("Locations", func(db *gorm.DB) *gorm.DB {
 		return db.Order("created_at DESC")
 	}).Where("id = ?", id).First(&device)

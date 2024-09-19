@@ -1,4 +1,4 @@
-package main
+package schemas
 
 import (
 	"errors"
@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/Hodik/geo-tracker-be/auth"
+	"github.com/Hodik/geo-tracker-be/models"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -38,30 +38,30 @@ type UpdateMe struct {
 }
 
 type UserSettingsOut struct {
-	TrackingDevices []GPSDevice `json:"tracking_devices"`
+	TrackingDevices []models.GPSDevice `json:"tracking_devices"`
 }
 
 type UserProfile struct {
-	User     *auth.User       `json:"user"`
-	Settings *UserSettingsOut `json:"settings"`
+	User     *models.User         `json:"user"`
+	Settings *models.UserSettings `json:"settings"`
 }
 
 type CreateCommunity struct {
-	Name            string         `json:"name" binding:"required"`
-	Description     *string        `json:"description"`
-	Type            *CommunityType `json:"type"`
-	AppearsInSearch *bool          `json:"appears_in_search"`
-	AdminID         *uuid.UUID     `json:"admin_id"`
-	PolygonArea     string         `json:"polygon_area" binding:"required"`
-	TrackingDevices *[]uuid.UUID   `json:"tracking_devices"`
+	Name            string                `json:"name" binding:"required"`
+	Description     *string               `json:"description"`
+	Type            *models.CommunityType `json:"type"`
+	AppearsInSearch *bool                 `json:"appears_in_search"`
+	AdminID         *uuid.UUID            `json:"admin_id"`
+	PolygonArea     string                `json:"polygon_area" binding:"required"`
+	TrackingDevices *[]uuid.UUID          `json:"tracking_devices"`
 }
 
 type UpdateCommunity struct {
-	Name            *string        `json:"name"`
-	Description     *string        `json:"description"`
-	Type            *CommunityType `json:"type"`
-	AppearsInSearch *bool          `json:"appears_in_search"`
-	PolygonArea     *string        `json:"polygon_area"`
+	Name            *string               `json:"name"`
+	Description     *string               `json:"description"`
+	Type            *models.CommunityType `json:"type"`
+	AppearsInSearch *bool                 `json:"appears_in_search"`
+	PolygonArea     *string               `json:"polygon_area"`
 }
 
 type CreateCommunityInvite struct {
@@ -85,9 +85,9 @@ type AddMember struct {
 	UserID uuid.UUID `json:"user_id" binding:"required"`
 }
 
-func (c *CreateCommunityInvite) ToCommunityInvite(creator *auth.User) (*CommunityInvite, error) {
+func (c *CreateCommunityInvite) ToCommunityInvite(db *gorm.DB, creator *models.User) (*models.CommunityInvite, error) {
 
-	var community Community
+	var community models.Community
 	result := db.Where("communities.id = ?", c.CommunityID).Preload("Members").First(&community)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -98,7 +98,7 @@ func (c *CreateCommunityInvite) ToCommunityInvite(creator *auth.User) (*Communit
 		return nil, errors.New(result.Error.Error())
 	}
 
-	var user auth.User
+	var user models.User
 
 	result = db.Where("users.id = ?", c.UserID).First(&user)
 
@@ -118,11 +118,11 @@ func (c *CreateCommunityInvite) ToCommunityInvite(creator *auth.User) (*Communit
 		return nil, errors.New("user is already a member of community")
 	}
 
-	return &CommunityInvite{UserID: c.UserID, CommunityID: c.CommunityID, CreatorID: creator.ID}, nil
+	return &models.CommunityInvite{UserID: c.UserID, CommunityID: c.CommunityID, CreatorID: creator.ID}, nil
 
 }
 
-func (u *UpdateCommunityInvite) ToCommunityInvite(existing *CommunityInvite, user *auth.User) error {
+func (u *UpdateCommunityInvite) ToCommunityInvite(existing *models.CommunityInvite, user *models.User) error {
 	if user.ID != existing.UserID {
 		return errors.New("only invited user can accept")
 	}
@@ -130,13 +130,13 @@ func (u *UpdateCommunityInvite) ToCommunityInvite(existing *CommunityInvite, use
 	existing.Accepted = &u.Accepted
 	return nil
 }
-func (c *CreateCommunity) ToCommunity(creator *auth.User) (*Community, error) {
+func (c *CreateCommunity) ToCommunity(db *gorm.DB, creator *models.User) (*models.Community, error) {
 	if err := ValidatePolygonWKT(c.PolygonArea); err != nil {
 		return nil, err
 	}
 
 	if c.Type != nil {
-		if *c.Type != PUBLIC && *c.Type != PRIVATE {
+		if *c.Type != models.PUBLIC && *c.Type != models.PRIVATE {
 			return nil, errors.New("type should be private or public")
 		}
 	}
@@ -148,7 +148,7 @@ func (c *CreateCommunity) ToCommunity(creator *auth.User) (*Community, error) {
 		AdminId = creator.ID
 	}
 
-	var Type CommunityType = PUBLIC
+	var Type models.CommunityType = models.PUBLIC
 	if c.Type != nil {
 		Type = *c.Type
 	}
@@ -157,24 +157,24 @@ func (c *CreateCommunity) ToCommunity(creator *auth.User) (*Community, error) {
 	if c.AppearsInSearch != nil {
 		AppearsInSearch = *c.AppearsInSearch
 	} else {
-		if Type == PUBLIC {
+		if Type == models.PUBLIC {
 			AppearsInSearch = true
-		} else if Type == PRIVATE {
+		} else if Type == models.PRIVATE {
 			AppearsInSearch = false
 		}
 	}
 
-	var devices []GPSDevice
+	var devices []models.GPSDevice
 	if c.TrackingDevices != nil {
 		if result := db.Where("id IN ?", *c.TrackingDevices).Find(&devices); result.Error != nil {
 			return nil, result.Error
 		}
 	}
 
-	return &Community{Name: c.Name, Description: c.Description, Type: Type, AdminID: AdminId, PolygonArea: c.PolygonArea, Members: []auth.User{*creator}, AppearsInSearch: AppearsInSearch, TrackingDevices: devices}, nil
+	return &models.Community{Name: c.Name, Description: c.Description, Type: Type, AdminID: AdminId, PolygonArea: c.PolygonArea, Members: []models.User{*creator}, AppearsInSearch: AppearsInSearch, TrackingDevices: devices}, nil
 }
 
-func (u *UpdateCommunity) ToCommunity(existing *Community, user *auth.User) error {
+func (u *UpdateCommunity) ToCommunity(existing *models.Community, user *models.User) error {
 	if user.ID != existing.AdminID {
 		return errors.New("only admin can modify community")
 	}
@@ -199,7 +199,7 @@ func (u *UpdateCommunity) ToCommunity(existing *Community, user *auth.User) erro
 	}
 
 	if u.Type != nil {
-		if *u.Type != PUBLIC && *u.Type != PRIVATE {
+		if *u.Type != models.PUBLIC && *u.Type != models.PRIVATE {
 			return errors.New("type should be private or public")
 		}
 
@@ -209,12 +209,12 @@ func (u *UpdateCommunity) ToCommunity(existing *Community, user *auth.User) erro
 	return nil
 }
 
-func (c *CreateAreaOfInterest) ToAreaOfInterest(creator *auth.User) (*AreaOfInterest, error) {
+func (c *CreateAreaOfInterest) ToAreaOfInterest(creator *models.User) (*models.AreaOfInterest, error) {
 	if err := ValidatePolygonWKT(c.PolygonArea); err != nil {
 		return nil, err
 	}
 
-	return &AreaOfInterest{UserID: creator.ID, PolygonArea: c.PolygonArea}, nil
+	return &models.AreaOfInterest{UserID: creator.ID, PolygonArea: c.PolygonArea}, nil
 }
 
 func ValidatePolygonWKT(polygon string) error {
@@ -250,7 +250,7 @@ func ValidatePolygonWKT(polygon string) error {
 
 	return nil
 }
-func (u *UpdateMe) ToUser(existing *auth.User) {
+func (u *UpdateMe) ToUser(existing *models.User) {
 	if u.User == nil {
 		return
 	}
@@ -260,21 +260,17 @@ func (u *UpdateMe) ToUser(existing *auth.User) {
 	}
 }
 
-func ToUserProfile(u *auth.User, settings *UserSettings) *UserProfile {
-	return &UserProfile{User: u, Settings: settings.ToUserSettingsOut()}
+func ToUserProfile(u *models.User, settings *models.UserSettings) *UserProfile {
+	return &UserProfile{User: u, Settings: settings}
 }
 
-func (settings *UserSettings) ToUserSettingsOut() *UserSettingsOut {
-	return &UserSettingsOut{TrackingDevices: settings.TrackingDevices}
-}
-
-func (c *CreateGPSDevice) ToGPSDevice(creator *auth.User) *GPSDevice {
+func (c *CreateGPSDevice) ToGPSDevice(creator *models.User) *models.GPSDevice {
 	if c.Imei == nil {
 		defaultTracking := false
 		c.Tracking = &defaultTracking
 	}
 
-	d := &GPSDevice{
+	d := &models.GPSDevice{
 		Number:      c.Number,
 		Imei:        c.Imei,
 		Password:    c.Password,
@@ -284,7 +280,7 @@ func (c *CreateGPSDevice) ToGPSDevice(creator *auth.User) *GPSDevice {
 	return d
 }
 
-func (u *UpdateGPSDevice) ToGPSDevice(existing *GPSDevice) {
+func (u *UpdateGPSDevice) ToGPSDevice(existing *models.GPSDevice) {
 	if u.Number != nil {
 		existing.Number = u.Number
 	}
