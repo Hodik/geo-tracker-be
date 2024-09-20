@@ -169,18 +169,10 @@ func GetMyCommunities(c *gin.Context) {
 	user := c.MustGet("user").(*models.User)
 	db := c.MustGet("db").(*gorm.DB)
 
-	var communities []models.Community
+	communities, err := user.FetchCommunities(db)
 
-	result := db.
-		Table("communities").
-		Joins("JOIN community_members ON community_members.community_id = communities.id").
-		Where("community_members.user_id = ?", user.ID).
-		Select("communities.created_at, communities.deleted_at, communities.updated_at, communities.id, communities.name, communities.description, ST_AsText(polygon_area) AS polygon_area, type, admin_id").
-		Group("communities.id").
-		Find(&communities)
-
-	if result.Error != nil {
-		c.JSON(500, gin.H{"error": result.Error.Error()})
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 
