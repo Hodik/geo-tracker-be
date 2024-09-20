@@ -61,13 +61,17 @@ func SetupDB() {
 
 	log.Println("Installed DB Extensions")
 
-	if err = CreateCommunityTypeEnum(); err != nil {
+	if err = CreateEnumType("community_type", []string{string(models.PUBLIC), string(models.PRIVATE)}); err != nil {
+		panic(err)
+	}
+
+	if err = CreateEnumType("member_role", []string{string(models.ADMIN), string(models.READ_ONLY)}); err != nil {
 		panic(err)
 	}
 
 	log.Println("Created DB types")
 
-	err = db.AutoMigrate(&models.GPSDevice{}, &models.GPSLocation{}, &models.Config{}, &models.User{}, &models.UserSettings{}, &models.Event{}, &models.Comment{}, &models.Notification{}, &models.Community{}, &models.AreaOfInterest{}, &models.Migration{}, &models.CommunityInvite{})
+	err = db.AutoMigrate(&models.GPSDevice{}, &models.GPSLocation{}, &models.Config{}, &models.User{}, &models.UserSettings{}, &models.Event{}, &models.Comment{}, &models.Notification{}, &models.Community{}, &models.AreaOfInterest{}, &models.Migration{}, &models.CommunityInvite{}, &models.CommunityMember{})
 
 	if err != nil {
 		panic("failed to migrate database")
@@ -152,21 +156,33 @@ func CreateDBIndexes() error {
 	return nil
 }
 
-func CreateCommunityTypeEnum() error {
-	result := db.Exec("SELECT 1 FROM pg_type WHERE typname = 'community_type';")
+func CreateEnumType(enumName string, values []string) error {
+	// Check if the enum type already exists
+	query := fmt.Sprintf("SELECT 1 FROM pg_type WHERE typname = '%s';", enumName)
+	result := db.Exec(query)
 
 	switch {
 	case result.RowsAffected == 0:
-		if err := db.Exec("CREATE TYPE community_type AS ENUM ('public', 'private');").Error; err != nil {
-			log.Println("Error creating community_type")
+		// Format the enum values into a string
+		enumValues := strings.Join(values, "', '")
+		createEnumQuery := fmt.Sprintf("CREATE TYPE %s AS ENUM ('%s');", enumName, enumValues)
+
+		// Create the enum type
+		if err := db.Exec(createEnumQuery).Error; err != nil {
+			log.Printf("Error creating enum type %s: %v", enumName, err)
 			return err
 		}
 
+		log.Printf("Enum type %s created successfully", enumName)
 		return nil
+
 	case result.Error != nil:
+		// Return the error if something goes wrong
 		return result.Error
 
 	default:
+		// Enum type already exists, so do nothing
+		log.Printf("Enum type %s already exists", enumName)
 		return nil
 	}
 }
