@@ -51,7 +51,6 @@ type CreateCommunity struct {
 	Description     *string               `json:"description"`
 	Type            *models.CommunityType `json:"type"`
 	AppearsInSearch *bool                 `json:"appears_in_search"`
-	AdminID         *uuid.UUID            `json:"admin_id"`
 	PolygonArea     string                `json:"polygon_area" binding:"required"`
 	TrackingDevices *[]uuid.UUID          `json:"tracking_devices"`
 }
@@ -65,8 +64,9 @@ type UpdateCommunity struct {
 }
 
 type CreateCommunityInvite struct {
-	CommunityID uuid.UUID `json:"community_id" binding:"required"`
-	UserID      uuid.UUID `json:"user_id" binding:"required"`
+	CommunityID uuid.UUID         `json:"community_id" binding:"required"`
+	UserID      uuid.UUID         `json:"user_id" binding:"required"`
+	Role        models.MemberRole `json:"role"`
 }
 
 type UpdateCommunityInvite struct {
@@ -88,19 +88,19 @@ type AddMember struct {
 func (c *CreateCommunityInvite) ToCommunityInvite(db *gorm.DB, creator *models.User) (*models.CommunityInvite, error) {
 
 	var community models.Community
-	result := db.Where("communities.id = ?", c.CommunityID).Preload("Members").First(&community)
+	err := community.Fetch(db, c.CommunityID.String())
 
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, errors.New("community doesn't exist")
 	}
 
-	if result.Error != nil {
-		return nil, errors.New(result.Error.Error())
+	if err != nil {
+		return nil, errors.New(err.Error())
 	}
 
 	var user models.User
 
-	result = db.Where("users.id = ?", c.UserID).First(&user)
+	result := db.Where("users.id = ?", c.UserID).First(&user)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, errors.New("user doesn't exist")
@@ -110,7 +110,7 @@ func (c *CreateCommunityInvite) ToCommunityInvite(db *gorm.DB, creator *models.U
 		return nil, errors.New(result.Error.Error())
 	}
 
-	if creator.ID != community.AdminID {
+	if !community.IsAdmin(creator) {
 		return nil, errors.New("only community's admin can invite users")
 	}
 
@@ -118,7 +118,7 @@ func (c *CreateCommunityInvite) ToCommunityInvite(db *gorm.DB, creator *models.U
 		return nil, errors.New("user is already a member of community")
 	}
 
-	return &models.CommunityInvite{UserID: c.UserID, CommunityID: c.CommunityID, CreatorID: creator.ID}, nil
+	return &models.CommunityInvite{UserID: c.UserID, CommunityID: c.CommunityID, CreatorID: creator.ID, Role: c.Role}, nil
 
 }
 
@@ -130,7 +130,7 @@ func (u *UpdateCommunityInvite) ToCommunityInvite(existing *models.CommunityInvi
 	existing.Accepted = &u.Accepted
 	return nil
 }
-func (c *CreateCommunity) ToCommunity(db *gorm.DB, creator *models.User) (*models.Community, error) {
+func (c *CreateCommunity) ToCommunity(db *gorm.DB) (*models.Community, error) {
 	if err := ValidatePolygonWKT(c.PolygonArea); err != nil {
 		return nil, err
 	}
@@ -139,13 +139,6 @@ func (c *CreateCommunity) ToCommunity(db *gorm.DB, creator *models.User) (*model
 		if *c.Type != models.PUBLIC && *c.Type != models.PRIVATE {
 			return nil, errors.New("type should be private or public")
 		}
-	}
-
-	var AdminId uuid.UUID
-	if c.AdminID != nil {
-		AdminId = *c.AdminID
-	} else {
-		AdminId = creator.ID
 	}
 
 	var Type models.CommunityType = models.PUBLIC
@@ -171,11 +164,11 @@ func (c *CreateCommunity) ToCommunity(db *gorm.DB, creator *models.User) (*model
 		}
 	}
 
-	return &models.Community{Name: c.Name, Description: c.Description, Type: Type, AdminID: AdminId, PolygonArea: c.PolygonArea, Members: []models.User{*creator}, AppearsInSearch: AppearsInSearch, TrackingDevices: devices}, nil
+	return &models.Community{Name: c.Name, Description: c.Description, Type: Type, PolygonArea: c.PolygonArea, Members: []models.CommunityMember{}, AppearsInSearch: AppearsInSearch, TrackingDevices: devices}, nil
 }
 
 func (u *UpdateCommunity) ToCommunity(existing *models.Community, user *models.User) error {
-	if user.ID != existing.AdminID {
+	if !existing.IsAdmin(user) {
 		return errors.New("only admin can modify community")
 	}
 

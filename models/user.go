@@ -13,8 +13,6 @@ type User struct {
 
 	Name          *string `json:"name"`
 	EmailVerified *bool   `json:"email_verified"`
-
-	Communities []Community `gorm:"many2many:community_members" json:"communities"`
 }
 
 type UserSettings struct {
@@ -66,4 +64,19 @@ func (us *UserSettings) IsDeviceTracked(device *GPSDevice) bool {
 	}
 
 	return false
+}
+
+func (u *User) FetchCommunities(db *gorm.DB) ([]Community, error) {
+	var communityMembers []CommunityMember
+	if err := db.Where("user_id = ?", u.ID).Joins("Community").
+		Find(&communityMembers).Error; err != nil {
+		return nil, err
+	}
+
+	var communities []Community
+	for _, cm := range communityMembers {
+		communities = append(communities, cm.Community)
+	}
+
+	return communities, nil
 }
