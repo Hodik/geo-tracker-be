@@ -1,6 +1,6 @@
 # Geo Tracker Backend
 
-![Build Status](https://github.com/Hodik/geo-tracker-be/actions/workflows/deploy.yml/badge.svg?branch=master)
+![Build Status](https://github.com/Hodik/geo-tracker-be/actions/workflows/deploy.yml/badge.svg?branch=main)
 
 ## Overview
 
@@ -29,7 +29,7 @@ Geo Tracker Backend is a robust backend service for tracking geographical locati
 1. **Clone the repository**:
 
    ```sh
-   git clone https://github.com/your-repo/geo-tracker-be.git
+   git clone https://github.com/Hodik/geo-tracker-be.git
    cd geo-tracker-be
    ```
 
