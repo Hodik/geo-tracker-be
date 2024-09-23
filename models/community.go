@@ -19,10 +19,10 @@ type CommunityMember struct {
 
 type Community struct {
 	Base
-	Name                          string            `gorm:"not null;unique" json:"name"`
+	Name                          string            `gorm:"not null;unique;index" json:"name"`
 	Description                   *string           `json:"description"`
 	Type                          CommunityType     `gorm:"type:community_type;default:'public'" json:"type"`
-	AppearsInSearch               bool              `gorm:"not null;default:true" json:"appears_in_search"`
+	AppearsInSearch               bool              `gorm:"not null;default:true;index" json:"appears_in_search"`
 	IncludeExternalEvents         bool              `gorm:"not null;default:true" json:"include_external_events"`
 	AllowReadOnlyMembersAddEvents bool              `gorm:"not null;default:true" json:"allow_read_only_members_add_events"`
 	Members                       []CommunityMember `json:"members"`
@@ -34,12 +34,12 @@ type Community struct {
 type CommunityInvite struct {
 	Base
 	Community   Community  `json:"-"`
-	CommunityID uuid.UUID  `gorm:"not null" json:"community_id"`
+	CommunityID uuid.UUID  `gorm:"not null;index" json:"community_id"`
 	User        User       `json:"-"`
-	UserID      uuid.UUID  `gorm:"not null" json:"user_id"`
+	UserID      uuid.UUID  `gorm:"not null;index" json:"user_id"`
 	Accepted    *bool      `json:"accepted"`
 	Creator     User       `json:"-"`
-	CreatorID   uuid.UUID  `gorm:"not null" json:"creator_id"`
+	CreatorID   uuid.UUID  `gorm:"not null;index" json:"creator_id"`
 	Role        MemberRole `gorm:"type:member_role;default:'read_only'" json:"role"`
 }
 

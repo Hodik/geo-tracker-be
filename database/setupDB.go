@@ -69,9 +69,30 @@ func SetupDB() {
 		panic(err)
 	}
 
+	if err = CreateEnumType("event_type", []string{string(models.EventTypeRobbery), string(models.EventTypeLost), string(models.EventTypeAccident), string(models.EventTypeOther)}); err != nil {
+		panic(err)
+	}
+
+	if err = CreateEnumType("event_status", []string{string(models.EventStatusOpen), string(models.EventStatusResolved), string(models.EventStatusClosed)}); err != nil {
+		panic(err)
+	}
+
 	log.Println("Created DB types")
 
-	err = db.AutoMigrate(&models.GPSDevice{}, &models.GPSLocation{}, &models.Config{}, &models.User{}, &models.UserSettings{}, &models.Event{}, &models.Comment{}, &models.Notification{}, &models.Community{}, &models.AreaOfInterest{}, &models.Migration{}, &models.CommunityInvite{}, &models.CommunityMember{})
+	err = db.AutoMigrate(&models.GPSDevice{},
+		&models.GPSLocation{},
+		&models.Config{},
+		&models.User{},
+		&models.UserSettings{},
+		&models.Event{},
+		&models.Comment{},
+		&models.Notification{},
+		&models.Community{},
+		&models.AreaOfInterest{},
+		&models.Migration{},
+		&models.CommunityInvite{},
+		&models.CommunityMember{},
+	)
 
 	if err != nil {
 		panic("failed to migrate database")

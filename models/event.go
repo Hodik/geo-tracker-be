@@ -16,12 +16,12 @@ type Event struct {
 	Type         EventType   `gorm:"type:event_type;not null;default:'other'" json:"type"`
 	Status       EventStatus `gorm:"type:event_status;not null;default:'open'" json:"status"`
 	IsPublic     bool        `gorm:"default:true;not null" json:"is_public"`
-	DeviceID     *uuid.UUID  `json:"device_id"`
+	DeviceID     *uuid.UUID  `gorm:"index" json:"device_id"`
 	Device       *GPSDevice  `json:"device"`
 	Latitude     float64     `gorm:"not null" json:"latitude"`
 	Longitude    float64     `gorm:"not null" json:"longitude"`
 	CreatedBy    *User       `json:"-"`
-	CreatedByID  uuid.UUID   `gorm:"not null" json:"created_by_id"`
+	CreatedByID  uuid.UUID   `gorm:"not null;index" json:"created_by_id"`
 	LinkedEvents []Event     `gorm:"many2many:event_linked"`
 	Communities  []Community `gorm:"many2many:event_communities"`
 	Users        []User      `gorm:"many2many:event_users"`
@@ -31,9 +31,9 @@ type Comment struct {
 	Base
 	Content     string    `gorm:"not null" json:"content"`
 	CreatedBy   *User     `json:"-"`
-	CreatedByID uuid.UUID `gorm:"not null" json:"created_by_id"`
+	CreatedByID uuid.UUID `gorm:"not null;index" json:"created_by_id"`
 	Event       Event     `json:"-"`
-	EventID     uuid.UUID `gorm:"not null" json:"event_id"`
+	EventID     uuid.UUID `gorm:"not null;index" json:"event_id"`
 }
 
 type EventType string
