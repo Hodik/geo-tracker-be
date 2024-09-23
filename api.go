@@ -5,10 +5,17 @@ import (
 	"log"
 
 	"github.com/Hodik/geo-tracker-be/database"
+	docs "github.com/Hodik/geo-tracker-be/docs"
 	"github.com/Hodik/geo-tracker-be/middleware"
 	"github.com/Hodik/geo-tracker-be/views"
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+	// This is important for the generated docs to be included
 )
+
+// gin-swagger middleware
+// swagger embed files
 
 func main() {
 	mode := flag.String("mode", "api", "Mode to run: api or worker or migrator")
@@ -34,46 +41,88 @@ func main() {
 
 func runApi() {
 	r := gin.Default()
-	r.Use(middleware.EnsureValidToken())
-	r.Use(middleware.DBMiddleware(database.GetDB()))
-	r.Use(middleware.FetchOrCreateUser)
-	r.GET("/users/:id", views.GetUserByID)
-	r.GET("/users/email/:email", views.GetUserByEmail)
-	r.GET("/me", views.GetMe)
-	r.PATCH("/me", views.UpdateMe)
-	r.POST("/me/track-device", views.UserTrackDevice)
-	r.POST("/me/untrack-device", views.UserUntrackDevice)
-	r.GET("/me/community-invites", views.GetCommunityInvitesUser)
-	r.GET("/me/areas-of-interest", views.GetMyAreasOfInterest)
-	r.GET("/me/communities", views.GetMyCommunities)
-	r.GET("/devices", views.GetGPSDevices)
-	r.POST("/devices", views.CreateGPSDevice)
-	r.PATCH("/devices/:id", views.UpdateGPSDevice)
-	r.GET("/devices/:id", views.GetGPSDevice)
-	r.POST("/areas-of-interest", views.CreateAreaOfInterest)
-	r.POST("/communities", views.CreateCommunity)
-	r.PATCH("/communities/:id", views.UpdateCommunity)
-	r.GET("/communities/:id", views.GetCommunity)
-	r.DELETE("/communities/:id", views.DeleteCommunity)
-	r.GET("/communities", views.GetCommunities)
-	r.POST("/communities/:id/remove-member", views.CommunityRemoveMember)
-	r.POST("/communities/:id/add-event", views.CommunityAddEvent)
-	r.POST("/communities/:id/remove-event", views.CommunityRemoveEvent)
-	r.POST("/communities/:id/track-device", views.CommunityTrackDevice)
-	r.POST("/communities/:id/untrack-device", views.CommunityUntrackDevice)
-	r.POST("/communities/:id/join", views.JoinCommunity)
-	r.POST("/communities/:id/leave", views.LeaveCommunity)
-	r.GET("/communities/:id/invites", views.GetCommunityInvitesCommunity)
-	r.POST("/community-invites", views.CreateCommunityInvite)
-	r.PATCH("/community-invites/:id", views.UpdateCommunityInvite)
-	r.DELETE("/community-invites/:id", views.DeleteCommunityInvite)
-	r.POST("/events/:id/comment", views.PostComment)
-	r.GET("/events/:id/comments", views.GetComments)
-	r.PATCH("/comments/:id", views.UpdateComment)
-	r.DELETE("/comments/:id", views.DeleteComment)
-	r.POST("/events", views.CreateEvent)
-	r.PATCH("/events/:id", views.UpdateEvent)
-	r.GET("/events/:id", views.GetEvent)
-	r.DELETE("/events/:id", views.DeleteEvent)
+
+	docs.SwaggerInfo.BasePath = "/api"
+
+	// Swagger route without middlewares
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	// API routes with middlewares
+	api := r.Group("/api")
+	api.Use(middleware.EnsureValidToken())
+	api.Use(middleware.DBMiddleware(database.GetDB()))
+	api.Use(middleware.FetchOrCreateUser)
+	{
+		users := api.Group("/users")
+		{
+			users.GET("/:id", views.GetUserByID)
+			users.GET("/by-email/:email", views.GetUserByEmail)
+		}
+
+		me := api.Group("/me")
+		{
+			me.GET("", views.GetMe)
+			me.PATCH("", views.UpdateMe)
+			me.POST("/track-device", views.UserTrackDevice)
+			me.POST("/untrack-device", views.UserUntrackDevice)
+			me.GET("/community-invites", views.GetCommunityInvitesUser)
+			me.GET("/areas-of-interest", views.GetMyAreasOfInterest)
+			me.GET("/communities", views.GetMyCommunities)
+		}
+
+		devices := api.Group("/devices")
+		{
+			devices.GET("", views.GetGPSDevices)
+			devices.POST("", views.CreateGPSDevice)
+			devices.PATCH("/:id", views.UpdateGPSDevice)
+			devices.GET("/:id", views.GetGPSDevice)
+		}
+
+		areasOfInterest := api.Group("/areas-of-interest")
+		{
+			areasOfInterest.POST("", views.CreateAreaOfInterest)
+		}
+
+		communities := api.Group("/communities")
+		{
+			communities.POST("", views.CreateCommunity)
+			communities.PATCH("/:id", views.UpdateCommunity)
+			communities.GET("/:id", views.GetCommunity)
+			communities.DELETE("/:id", views.DeleteCommunity)
+			communities.GET("", views.GetCommunities)
+			communities.POST("/:id/remove-member", views.CommunityRemoveMember)
+			communities.POST("/:id/add-event", views.CommunityAddEvent)
+			communities.POST("/:id/remove-event", views.CommunityRemoveEvent)
+			communities.POST("/:id/track-device", views.CommunityTrackDevice)
+			communities.POST("/:id/untrack-device", views.CommunityUntrackDevice)
+			communities.POST("/:id/join", views.JoinCommunity)
+			communities.POST("/:id/leave", views.LeaveCommunity)
+			communities.GET("/:id/invites", views.GetCommunityInvitesCommunity)
+		}
+
+		communityInvites := api.Group("/community-invites")
+		{
+			communityInvites.POST("", views.CreateCommunityInvite)
+			communityInvites.PATCH("/:id", views.UpdateCommunityInvite)
+			communityInvites.DELETE("/:id", views.DeleteCommunityInvite)
+		}
+
+		events := api.Group("/events")
+		{
+			events.POST("", views.CreateEvent)
+			events.PATCH("/:id", views.UpdateEvent)
+			events.GET("/:id", views.GetEvent)
+			events.DELETE("/:id", views.DeleteEvent)
+			events.POST("/:id/comment", views.PostComment)
+			events.GET("/:id/comments", views.GetComments)
+		}
+
+		comments := api.Group("/comments")
+		{
+			comments.PATCH("/:id", views.UpdateComment)
+			comments.DELETE("/:id", views.DeleteComment)
+		}
+	}
+
 	r.Run()
 }

@@ -1,0 +1,1627 @@
+definitions:
+  gorm.DeletedAt:
+    properties:
+      time:
+        type: string
+      valid:
+        description: Valid is true if Time is not NULL
+        type: boolean
+    type: object
+  models.AreaOfInterest:
+    properties:
+      created_at:
+        type: string
+      deleted_at:
+        $ref: '#/definitions/gorm.DeletedAt'
+      id:
+        type: string
+      polygon_area:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+  models.Comment:
+    properties:
+      content:
+        type: string
+      created_at:
+        type: string
+      created_by_id:
+        type: string
+      deleted_at:
+        $ref: '#/definitions/gorm.DeletedAt'
+      event_id:
+        type: string
+      id:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  models.Community:
+    properties:
+      allow_read_only_members_add_events:
+        type: boolean
+      appears_in_search:
+        type: boolean
+      created_at:
+        type: string
+      deleted_at:
+        $ref: '#/definitions/gorm.DeletedAt'
+      description:
+        type: string
+      events:
+        items:
+          $ref: '#/definitions/models.Event'
+        type: array
+      id:
+        type: string
+      include_external_events:
+        type: boolean
+      members:
+        items:
+          $ref: '#/definitions/models.CommunityMember'
+        type: array
+      name:
+        type: string
+      polygon_area:
+        type: string
+      tracking_devices:
+        items:
+          $ref: '#/definitions/models.GPSDevice'
+        type: array
+      type:
+        $ref: '#/definitions/models.CommunityType'
+      updated_at:
+        type: string
+    type: object
+  models.CommunityInvite:
+    properties:
+      accepted:
+        type: boolean
+      community_id:
+        type: string
+      created_at:
+        type: string
+      creator_id:
+        type: string
+      deleted_at:
+        $ref: '#/definitions/gorm.DeletedAt'
+      id:
+        type: string
+      role:
+        $ref: '#/definitions/models.MemberRole'
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+  models.CommunityMember:
+    properties:
+      role:
+        $ref: '#/definitions/models.MemberRole'
+      user:
+        $ref: '#/definitions/models.User'
+    type: object
+  models.CommunityType:
+    enum:
+    - public
+    - private
+    type: string
+    x-enum-varnames:
+    - PUBLIC
+    - PRIVATE
+  models.Event:
+    properties:
+      communities:
+        items:
+          $ref: '#/definitions/models.Community'
+        type: array
+      created_at:
+        type: string
+      created_by_id:
+        type: string
+      deleted_at:
+        $ref: '#/definitions/gorm.DeletedAt'
+      description:
+        type: string
+      device:
+        $ref: '#/definitions/models.GPSDevice'
+      device_id:
+        type: string
+      id:
+        type: string
+      is_public:
+        type: boolean
+      latitude:
+        type: number
+      linkedEvents:
+        items:
+          $ref: '#/definitions/models.Event'
+        type: array
+      longitude:
+        type: number
+      status:
+        $ref: '#/definitions/models.EventStatus'
+      title:
+        type: string
+      type:
+        $ref: '#/definitions/models.EventType'
+      updated_at:
+        type: string
+      users:
+        items:
+          $ref: '#/definitions/models.User'
+        type: array
+    type: object
+  models.EventStatus:
+    enum:
+    - open
+    - resolved
+    - closed
+    type: string
+    x-enum-varnames:
+    - EventStatusOpen
+    - EventStatusResolved
+    - EventStatusClosed
+  models.EventType:
+    enum:
+    - robbery
+    - lost
+    - accident
+    - other
+    type: string
+    x-enum-varnames:
+    - EventTypeRobbery
+    - EventTypeLost
+    - EventTypeAccident
+    - EventTypeOther
+  models.GPSDevice:
+    properties:
+      api_cookie:
+        type: string
+      created_at:
+        type: string
+      created_by:
+        type: string
+      deleted_at:
+        $ref: '#/definitions/gorm.DeletedAt'
+      id:
+        type: string
+      imei:
+        type: string
+      locations:
+        items:
+          $ref: '#/definitions/models.GPSLocation'
+        type: array
+      number:
+        type: string
+      password:
+        type: string
+      tracking:
+        type: boolean
+      updated_at:
+        type: string
+    type: object
+  models.GPSLocation:
+    properties:
+      created_at:
+        type: string
+      deleted_at:
+        $ref: '#/definitions/gorm.DeletedAt'
+      device_id:
+        type: string
+      id:
+        type: string
+      latitude:
+        type: number
+      longitude:
+        type: number
+      updated_at:
+        type: string
+    type: object
+  models.MemberRole:
+    enum:
+    - admin
+    - read_only
+    type: string
+    x-enum-varnames:
+    - ADMIN
+    - READ_ONLY
+  models.User:
+    properties:
+      created_at:
+        type: string
+      deleted_at:
+        $ref: '#/definitions/gorm.DeletedAt'
+      email:
+        type: string
+      email_verified:
+        type: boolean
+      id:
+        type: string
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  models.UserSettings:
+    properties:
+      created_at:
+        type: string
+      deleted_at:
+        $ref: '#/definitions/gorm.DeletedAt'
+      id:
+        type: string
+      tracking_devices:
+        items:
+          $ref: '#/definitions/models.GPSDevice'
+        type: array
+      updated_at:
+        type: string
+    type: object
+  schemas.AddEvent:
+    properties:
+      event_id:
+        type: string
+    required:
+    - event_id
+    type: object
+  schemas.AddMember:
+    properties:
+      user_id:
+        type: string
+    required:
+    - user_id
+    type: object
+  schemas.CreateAreaOfInterest:
+    properties:
+      polygon_area:
+        type: string
+    required:
+    - polygon_area
+    type: object
+  schemas.CreateComment:
+    properties:
+      content:
+        type: string
+    required:
+    - content
+    type: object
+  schemas.CreateCommunity:
+    properties:
+      allow_read_only_members_add_events:
+        type: boolean
+      appears_in_search:
+        type: boolean
+      description:
+        type: string
+      include_external_events:
+        type: boolean
+      name:
+        type: string
+      polygon_area:
+        type: string
+      tracking_devices:
+        items:
+          type: string
+        type: array
+      type:
+        $ref: '#/definitions/models.CommunityType'
+    required:
+    - name
+    - polygon_area
+    type: object
+  schemas.CreateCommunityInvite:
+    properties:
+      community_id:
+        type: string
+      role:
+        $ref: '#/definitions/models.MemberRole'
+      user_id:
+        type: string
+    required:
+    - community_id
+    - user_id
+    type: object
+  schemas.CreateEvent:
+    properties:
+      description:
+        type: string
+      device_id:
+        type: string
+      is_public:
+        type: boolean
+      latitude:
+        type: number
+      longitude:
+        type: number
+      status:
+        $ref: '#/definitions/models.EventStatus'
+      title:
+        type: string
+      type:
+        $ref: '#/definitions/models.EventType'
+    required:
+    - description
+    - title
+    type: object
+  schemas.CreateGPSDevice:
+    properties:
+      imei:
+        type: string
+      number:
+        type: string
+      password:
+        type: string
+      tracking:
+        type: boolean
+    type: object
+  schemas.Error:
+    properties:
+      error:
+        type: string
+    type: object
+  schemas.TrackDevice:
+    properties:
+      device_id:
+        type: string
+    required:
+    - device_id
+    type: object
+  schemas.UpdateComment:
+    properties:
+      content:
+        type: string
+    type: object
+  schemas.UpdateCommunity:
+    properties:
+      allow_read_only_members_add_events:
+        type: boolean
+      appears_in_search:
+        type: boolean
+      description:
+        type: string
+      include_external_events:
+        type: boolean
+      name:
+        type: string
+      polygon_area:
+        type: string
+      type:
+        $ref: '#/definitions/models.CommunityType'
+    type: object
+  schemas.UpdateCommunityInvite:
+    properties:
+      accepted:
+        type: boolean
+    required:
+    - accepted
+    type: object
+  schemas.UpdateEvent:
+    properties:
+      description:
+        type: string
+      latitude:
+        type: number
+      longitude:
+        type: number
+      status:
+        $ref: '#/definitions/models.EventStatus'
+      title:
+        type: string
+    type: object
+  schemas.UpdateGPSDevice:
+    properties:
+      imei:
+        type: string
+      number:
+        type: string
+      tracking:
+        type: boolean
+    type: object
+  schemas.UpdateMe:
+    properties:
+      user:
+        $ref: '#/definitions/schemas.UpdateUser'
+    type: object
+  schemas.UpdateUser:
+    properties:
+      name:
+        type: string
+    type: object
+  schemas.UserProfile:
+    properties:
+      settings:
+        $ref: '#/definitions/models.UserSettings'
+      user:
+        $ref: '#/definitions/models.User'
+    type: object
+info:
+  contact: {}
+paths:
+  /api/comments/{comment_id}:
+    delete:
+      description: Delete a comment by its ID
+      parameters:
+      - description: Comment ID
+        in: path
+        name: comment_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Delete a comment
+      tags:
+      - comments
+    patch:
+      consumes:
+      - application/json
+      description: Update a comment by its ID
+      parameters:
+      - description: Comment ID
+        in: path
+        name: comment_id
+        required: true
+        type: string
+      - description: Update comment
+        in: body
+        name: updateComment
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.UpdateComment'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Comment'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Update a comment
+      tags:
+      - comments
+  /api/communities:
+    get:
+      description: Get all communities that appear in search
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Community'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Get all communities
+      tags:
+      - communities
+    post:
+      consumes:
+      - application/json
+      description: Create a new community for the currently authenticated user
+      parameters:
+      - description: Create community
+        in: body
+        name: createCommunity
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.CreateCommunity'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Community'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Create a new community
+      tags:
+      - communities
+  /api/communities/{id}:
+    delete:
+      description: Delete a community for the currently authenticated user
+      parameters:
+      - description: Community ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Delete a community
+      tags:
+      - communities
+    get:
+      description: Get a community by its ID
+      parameters:
+      - description: Community ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Community'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Get a community by ID
+      tags:
+      - communities
+    patch:
+      consumes:
+      - application/json
+      description: Update a community for the currently authenticated user
+      parameters:
+      - description: Community ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update community
+        in: body
+        name: updateCommunity
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.UpdateCommunity'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Community'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Update a community
+      tags:
+      - communities
+  /api/communities/{id}/add-event:
+    post:
+      consumes:
+      - application/json
+      description: Add an event to a community by an admin
+      parameters:
+      - description: Community ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Add event
+        in: body
+        name: addEvent
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.AddEvent'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Community'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Add an event to a community
+      tags:
+      - communities
+  /api/communities/{id}/invites:
+    get:
+      description: Get all community invites for a specific community
+      parameters:
+      - description: Community ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.CommunityInvite'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Get community invites for a community
+      tags:
+      - community-invites
+  /api/communities/{id}/join:
+    post:
+      description: Join a public community for the currently authenticated user
+      parameters:
+      - description: Community ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Community'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Join a community
+      tags:
+      - communities
+  /api/communities/{id}/leave:
+    post:
+      description: Leave a community for the currently authenticated user
+      parameters:
+      - description: Community ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Leave a community
+      tags:
+      - communities
+  /api/communities/{id}/remove-event:
+    post:
+      consumes:
+      - application/json
+      description: Remove an event from a community by an admin
+      parameters:
+      - description: Community ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Remove event
+        in: body
+        name: removeEvent
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.AddEvent'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Community'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Remove an event from a community
+      tags:
+      - communities
+  /api/communities/{id}/remove-member:
+    post:
+      consumes:
+      - application/json
+      description: Remove a member from a community by an admin
+      parameters:
+      - description: Community ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Remove member
+        in: body
+        name: removeMember
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.AddMember'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Community'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Remove a member from a community
+      tags:
+      - communities
+  /api/communities/{id}/track-device:
+    post:
+      consumes:
+      - application/json
+      description: Track a GPS device in a community by an admin
+      parameters:
+      - description: Community ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Track device
+        in: body
+        name: trackDevice
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.TrackDevice'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Community'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Track a device in a community
+      tags:
+      - communities
+  /api/communities/{id}/untrack-device:
+    post:
+      consumes:
+      - application/json
+      description: Untrack a GPS device in a community by an admin
+      parameters:
+      - description: Community ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Untrack device
+        in: body
+        name: untrackDevice
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.TrackDevice'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Community'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Untrack a device in a community
+      tags:
+      - communities
+  /api/community-invites:
+    post:
+      consumes:
+      - application/json
+      description: Create a new community invite for a user
+      parameters:
+      - description: Create community invite
+        in: body
+        name: createCommunityInvite
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.CreateCommunityInvite'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.CommunityInvite'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Create a community invite
+      tags:
+      - community-invites
+  /api/community-invites/{id}:
+    delete:
+      description: Delete a community invite by its ID
+      parameters:
+      - description: Community Invite ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Delete a community invite
+      tags:
+      - community-invites
+    patch:
+      consumes:
+      - application/json
+      description: Update the status of a community invite
+      parameters:
+      - description: Community Invite ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update community invite
+        in: body
+        name: updateCommunityInvite
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.UpdateCommunityInvite'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.CommunityInvite'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Update a community invite
+      tags:
+      - community-invites
+  /api/devices:
+    get:
+      description: Get a list of all GPS devices for the currently authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.GPSDevice'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Get all GPS devices
+      tags:
+      - devices
+    post:
+      consumes:
+      - application/json
+      description: Create a new GPS device for the currently authenticated user
+      parameters:
+      - description: Create GPS device
+        in: body
+        name: createGPSDevice
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.CreateGPSDevice'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.GPSDevice'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Create a new GPS device
+      tags:
+      - devices
+  /api/devices/{id}:
+    get:
+      description: Get details of a GPS device by its ID, including its locations
+      parameters:
+      - description: Device ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.GPSDevice'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Get a GPS device by ID
+      tags:
+      - devices
+    patch:
+      consumes:
+      - application/json
+      description: Update a GPS device for the currently authenticated user
+      parameters:
+      - description: Device ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update GPS device
+        in: body
+        name: updateGPSDevice
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.UpdateGPSDevice'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.GPSDevice'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Update a GPS device
+      tags:
+      - devices
+  /api/events:
+    post:
+      consumes:
+      - application/json
+      description: Create a new event for the currently authenticated user
+      parameters:
+      - description: Create event
+        in: body
+        name: createEvent
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.CreateEvent'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Event'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Create a new event
+      tags:
+      - events
+  /api/events/{id}:
+    delete:
+      description: Delete an event by its ID
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Delete an event
+      tags:
+      - events
+    get:
+      description: Get details of an event by its ID
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Event'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Get an event by ID
+      tags:
+      - events
+    patch:
+      consumes:
+      - application/json
+      description: Update an event by its ID
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update event
+        in: body
+        name: updateEvent
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.UpdateEvent'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Event'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Update an event
+      tags:
+      - events
+  /api/events/{id}/comments:
+    get:
+      description: Get all comments for an event by its ID
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Comment'
+            type: array
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Get comments for an event
+      tags:
+      - comments
+    post:
+      consumes:
+      - application/json
+      description: Post a comment on an event by its ID
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Create comment
+        in: body
+        name: createComment
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.CreateComment'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Comment'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Post a comment on an event
+      tags:
+      - comments
+  /api/me/community-invites:
+    get:
+      description: Get all community invites for the currently authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.CommunityInvite'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Get community invites for user
+      tags:
+      - community-invites
+  /api/users/{id}:
+    get:
+      description: Get a user by their ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.User'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Get user by ID
+      tags:
+      - users
+  /api/users/by-email/{email}:
+    get:
+      description: Get a user by their email address
+      parameters:
+      - description: User Email
+        in: path
+        name: email
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.User'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Get user by email
+      tags:
+      - users
+  /me:
+    get:
+      description: Get the profile of the currently authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.UserProfile'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Get current user profile
+      tags:
+      - me
+    patch:
+      consumes:
+      - application/json
+      description: Update the profile of the currently authenticated user
+      parameters:
+      - description: Update user profile
+        in: body
+        name: updateMe
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.UpdateMe'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.UserProfile'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Update current user profile
+      tags:
+      - me
+  /me/areas-of-interest:
+    get:
+      description: Get all areas of interest for the currently authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.AreaOfInterest'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Get areas of interest
+      tags:
+      - me
+    post:
+      consumes:
+      - application/json
+      description: Create a new area of interest for the currently authenticated user
+      parameters:
+      - description: Create area of interest
+        in: body
+        name: createAreaOfInterest
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.CreateAreaOfInterest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.AreaOfInterest'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Create a new area of interest
+      tags:
+      - me
+  /me/communities:
+    get:
+      description: Get all communities the currently authenticated user is a member
+        of
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Community'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Get user communities
+      tags:
+      - me
+  /me/track-device:
+    post:
+      consumes:
+      - application/json
+      description: Track a GPS device for the currently authenticated user
+      parameters:
+      - description: Track device
+        in: body
+        name: trackDevice
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.TrackDevice'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.UserProfile'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Track a device
+      tags:
+      - me
+  /me/untrack-device:
+    post:
+      consumes:
+      - application/json
+      description: Untrack a GPS device for the currently authenticated user
+      parameters:
+      - description: Untrack device
+        in: body
+        name: trackDevice
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.TrackDevice'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.UserProfile'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Untrack a device
+      tags:
+      - me
+swagger: "2.0"
