@@ -9,6 +9,17 @@ import (
 	"gorm.io/gorm"
 )
 
+// GetEvent godoc
+// @Summary Get an event by ID
+// @Description Get details of an event by its ID
+// @Tags events
+// @Produce json
+// @Param id path string true "Event ID"
+// @Success 200 {object} models.Event
+// @Failure 403 {object} schemas.Error
+// @Failure 404 {object} schemas.Error
+// @Failure 500 {object} schemas.Error
+// @Router /api/events/{id} [get]
 func GetEvent(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 	user := c.MustGet("user").(*models.User)
@@ -41,6 +52,17 @@ func GetEvent(c *gin.Context) {
 	c.JSON(200, event)
 }
 
+// CreateEvent godoc
+// @Summary Create a new event
+// @Description Create a new event for the currently authenticated user
+// @Tags events
+// @Accept json
+// @Produce json
+// @Param createEvent body schemas.CreateEvent true "Create event"
+// @Success 201 {object} models.Event
+// @Failure 400 {object} schemas.Error
+// @Failure 500 {object} schemas.Error
+// @Router /api/events [post]
 func CreateEvent(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 	user := c.MustGet("user").(*models.User)
@@ -61,9 +83,24 @@ func CreateEvent(c *gin.Context) {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
+
 	c.JSON(201, event)
 }
 
+// UpdateEvent godoc
+// @Summary Update an event
+// @Description Update an event by its ID
+// @Tags events
+// @Accept json
+// @Produce json
+// @Param id path string true "Event ID"
+// @Param updateEvent body schemas.UpdateEvent true "Update event"
+// @Success 200 {object} models.Event
+// @Failure 400 {object} schemas.Error
+// @Failure 403 {object} schemas.Error
+// @Failure 404 {object} schemas.Error
+// @Failure 500 {object} schemas.Error
+// @Router /api/events/{id} [patch]
 func UpdateEvent(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 	user := c.MustGet("user").(*models.User)
@@ -112,6 +149,17 @@ func UpdateEvent(c *gin.Context) {
 	c.JSON(200, event)
 }
 
+// DeleteEvent godoc
+// @Summary Delete an event
+// @Description Delete an event by its ID
+// @Tags events
+// @Produce json
+// @Param id path string true "Event ID"
+// @Success 204
+// @Failure 403 {object} schemas.Error
+// @Failure 404 {object} schemas.Error
+// @Failure 500 {object} schemas.Error
+// @Router /api/events/{id} [delete]
 func DeleteEvent(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 	user := c.MustGet("user").(*models.User)
@@ -143,6 +191,20 @@ func DeleteEvent(c *gin.Context) {
 	c.Status(204)
 }
 
+// PostComment godoc
+// @Summary Post a comment on an event
+// @Description Post a comment on an event by its ID
+// @Tags comments
+// @Accept json
+// @Produce json
+// @Param id path string true "Event ID"
+// @Param createComment body schemas.CreateComment true "Create comment"
+// @Success 201 {object} models.Comment
+// @Failure 400 {object} schemas.Error
+// @Failure 403 {object} schemas.Error
+// @Failure 404 {object} schemas.Error
+// @Failure 500 {object} schemas.Error
+// @Router /api/events/{id}/comments [post]
 func PostComment(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 	user := c.MustGet("user").(*models.User)
@@ -187,6 +249,17 @@ func PostComment(c *gin.Context) {
 	c.JSON(201, comment)
 }
 
+// GetComments godoc
+// @Summary Get comments for an event
+// @Description Get all comments for an event by its ID
+// @Tags comments
+// @Produce json
+// @Param id path string true "Event ID"
+// @Success 200 {array} models.Comment
+// @Failure 403 {object} schemas.Error
+// @Failure 404 {object} schemas.Error
+// @Failure 500 {object} schemas.Error
+// @Router /api/events/{id}/comments [get]
 func GetComments(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 	user := c.MustGet("user").(*models.User)
@@ -225,6 +298,20 @@ func GetComments(c *gin.Context) {
 	c.JSON(200, comments)
 }
 
+// UpdateComment godoc
+// @Summary Update a comment
+// @Description Update a comment by its ID
+// @Tags comments
+// @Accept json
+// @Produce json
+// @Param comment_id path string true "Comment ID"
+// @Param updateComment body schemas.UpdateComment true "Update comment"
+// @Success 200 {object} models.Comment
+// @Failure 400 {object} schemas.Error
+// @Failure 403 {object} schemas.Error
+// @Failure 404 {object} schemas.Error
+// @Failure 500 {object} schemas.Error
+// @Router /api/comments/{comment_id} [patch]
 func UpdateComment(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 	user := c.MustGet("user").(*models.User)
@@ -267,6 +354,17 @@ func UpdateComment(c *gin.Context) {
 	c.JSON(200, comment)
 }
 
+// DeleteComment godoc
+// @Summary Delete a comment
+// @Description Delete a comment by its ID
+// @Tags comments
+// @Produce json
+// @Param comment_id path string true "Comment ID"
+// @Success 204
+// @Failure 403 {object} schemas.Error
+// @Failure 404 {object} schemas.Error
+// @Failure 500 {object} schemas.Error
+// @Router /api/comments/{comment_id} [delete]
 func DeleteComment(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 	user := c.MustGet("user").(*models.User)

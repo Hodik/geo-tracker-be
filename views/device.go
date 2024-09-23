@@ -9,6 +9,14 @@ import (
 	"gorm.io/gorm"
 )
 
+// GetGPSDevices godoc
+// @Summary Get all GPS devices
+// @Description Get a list of all GPS devices for the currently authenticated user
+// @Tags devices
+// @Produce json
+// @Success 200 {array} models.GPSDevice
+// @Failure 500 {object} schemas.Error
+// @Router /api/devices [get]
 func GetGPSDevices(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 
@@ -23,6 +31,17 @@ func GetGPSDevices(c *gin.Context) {
 	c.JSON(200, devices)
 }
 
+// CreateGPSDevice godoc
+// @Summary Create a new GPS device
+// @Description Create a new GPS device for the currently authenticated user
+// @Tags devices
+// @Accept json
+// @Produce json
+// @Param createGPSDevice body schemas.CreateGPSDevice true "Create GPS device"
+// @Success 201 {object} models.GPSDevice
+// @Failure 400 {object} schemas.Error
+// @Failure 500 {object} schemas.Error
+// @Router /api/devices [post]
 func CreateGPSDevice(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 	user := c.MustGet("user").(*models.User)
@@ -45,6 +64,19 @@ func CreateGPSDevice(c *gin.Context) {
 	c.JSON(201, deviceModel)
 }
 
+// UpdateGPSDevice godoc
+// @Summary Update a GPS device
+// @Description Update a GPS device for the currently authenticated user
+// @Tags devices
+// @Accept json
+// @Produce json
+// @Param id path string true "Device ID"
+// @Param updateGPSDevice body schemas.UpdateGPSDevice true "Update GPS device"
+// @Success 200 {object} models.GPSDevice
+// @Failure 400 {object} schemas.Error
+// @Failure 404 {object} schemas.Error
+// @Failure 500 {object} schemas.Error
+// @Router /api/devices/{id} [patch]
 func UpdateGPSDevice(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 
@@ -77,6 +109,16 @@ func UpdateGPSDevice(c *gin.Context) {
 	c.JSON(200, deviceModel)
 }
 
+// GetGPSDevice godoc
+// @Summary Get a GPS device by ID
+// @Description Get details of a GPS device by its ID, including its locations
+// @Tags devices
+// @Produce json
+// @Param id path string true "Device ID"
+// @Success 200 {object} models.GPSDevice
+// @Failure 404 {object} schemas.Error
+// @Failure 500 {object} schemas.Error
+// @Router /api/devices/{id} [get]
 func GetGPSDevice(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 
