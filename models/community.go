@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql/driver"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -18,14 +19,16 @@ type CommunityMember struct {
 
 type Community struct {
 	Base
-	Name            string            `gorm:"not null;unique" json:"name"`
-	Description     *string           `json:"description"`
-	Type            CommunityType     `gorm:"type:community_type;default:'public'" json:"type"`
-	AppearsInSearch bool              `gorm:"not null;default:true" json:"appears_in_search"`
-	Members         []CommunityMember `json:"members"`
-	Events          []Event           `gorm:"many2many:event_communities" json:"events"`
-	PolygonArea     string            `gorm:"type:GEOMETRY(POLYGON,4326);not null" json:"polygon_area"`
-	TrackingDevices []GPSDevice       `gorm:"many2many:community_tracking" json:"tracking_devices"`
+	Name                          string            `gorm:"not null;unique" json:"name"`
+	Description                   *string           `json:"description"`
+	Type                          CommunityType     `gorm:"type:community_type;default:'public'" json:"type"`
+	AppearsInSearch               bool              `gorm:"not null;default:true" json:"appears_in_search"`
+	IncludeExternalEvents         bool              `gorm:"not null;default:true" json:"include_external_events"`
+	AllowReadOnlyMembersAddEvents bool              `gorm:"not null;default:true" json:"allow_read_only_members_add_events"`
+	Members                       []CommunityMember `json:"members"`
+	Events                        []Event           `gorm:"many2many:event_communities" json:"events"`
+	PolygonArea                   string            `gorm:"type:GEOMETRY(POLYGON,4326);not null" json:"polygon_area"`
+	TrackingDevices               []GPSDevice       `gorm:"many2many:community_tracking" json:"tracking_devices"`
 }
 
 type CommunityInvite struct {
@@ -178,4 +181,12 @@ func (community *Community) Fetch(db *gorm.DB, id string) error {
 	}
 
 	return community.LoadMembers(db)
+}
+
+func ValidateCommunityType(ct string) error {
+	if ct != string(PUBLIC) && ct != string(PRIVATE) {
+		return errors.New("invalid community type")
+	}
+
+	return nil
 }
