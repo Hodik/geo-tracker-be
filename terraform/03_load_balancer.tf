@@ -16,7 +16,7 @@ resource "aws_lb_target_group" "target_group" {
   target_type = "ip"
 
   health_check {
-    path                = "/ping/"
+    path                = "/ping"
     port                = "traffic-port"
     healthy_threshold   = 5
     unhealthy_threshold = 2
