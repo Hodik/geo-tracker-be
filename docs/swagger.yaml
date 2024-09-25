@@ -13,13 +13,15 @@ definitions:
         type: string
       deleted_at:
         $ref: '#/definitions/gorm.DeletedAt'
+      events:
+        items:
+          $ref: '#/definitions/models.Event'
+        type: array
       id:
         type: string
       polygon_area:
         type: string
       updated_at:
-        type: string
-      user_id:
         type: string
     type: object
   models.Comment:
@@ -45,6 +47,10 @@ definitions:
         type: boolean
       appears_in_search:
         type: boolean
+      areas_of_interest:
+        items:
+          $ref: '#/definitions/models.AreaOfInterest'
+        type: array
       created_at:
         type: string
       deleted_at:
@@ -64,8 +70,6 @@ definitions:
           $ref: '#/definitions/models.CommunityMember'
         type: array
       name:
-        type: string
-      polygon_area:
         type: string
       tracking_devices:
         items:
@@ -114,9 +118,9 @@ definitions:
     - PRIVATE
   models.Event:
     properties:
-      communities:
+      comments:
         items:
-          $ref: '#/definitions/models.Community'
+          $ref: '#/definitions/models.Comment'
         type: array
       created_at:
         type: string
@@ -136,10 +140,6 @@ definitions:
         type: boolean
       latitude:
         type: number
-      linkedEvents:
-        items:
-          $ref: '#/definitions/models.Event'
-        type: array
       longitude:
         type: number
       status:
@@ -150,10 +150,6 @@ definitions:
         $ref: '#/definitions/models.EventType'
       updated_at:
         type: string
-      users:
-        items:
-          $ref: '#/definitions/models.User'
-        type: array
     type: object
   models.EventStatus:
     enum:
@@ -231,6 +227,10 @@ definitions:
     - READ_ONLY
   models.User:
     properties:
+      areas_of_interest:
+        items:
+          $ref: '#/definitions/models.AreaOfInterest'
+        type: array
       created_at:
         type: string
       deleted_at:
@@ -301,8 +301,6 @@ definitions:
         type: boolean
       name:
         type: string
-      polygon_area:
-        type: string
       tracking_devices:
         items:
           type: string
@@ -311,7 +309,6 @@ definitions:
         $ref: '#/definitions/models.CommunityType'
     required:
     - name
-    - polygon_area
     type: object
   schemas.CreateCommunityInvite:
     properties:
@@ -327,6 +324,10 @@ definitions:
     type: object
   schemas.CreateEvent:
     properties:
+      communities:
+        items:
+          type: string
+        type: array
       description:
         type: string
       device_id:
@@ -698,6 +699,117 @@ paths:
           schema:
             $ref: '#/definitions/schemas.Error'
       summary: Add an event to a community
+      tags:
+      - communities
+  /api/communities/{id}/areas-of-interest:
+    get:
+      description: Get areas of interest for a community
+      parameters:
+      - description: Community ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.AreaOfInterest'
+            type: array
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Get areas of interest for a community
+      tags:
+      - communities
+    post:
+      consumes:
+      - application/json
+      description: Create a new area of interest for a community by an admin
+      parameters:
+      - description: Community ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Create area of interest
+        in: body
+        name: createAreaOfInterest
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.CreateAreaOfInterest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.AreaOfInterest'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Create an area of interest for a community
+      tags:
+      - communities
+  /api/communities/{id}/areas-of-interest/{area_of_interest_id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete an area of interest from a community by an admin
+      parameters:
+      - description: Community ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Area of Interest ID
+        in: path
+        name: area_of_interest_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Delete an area of interest from a community
       tags:
       - communities
   /api/communities/{id}/invites:
@@ -1534,6 +1646,31 @@ paths:
           schema:
             $ref: '#/definitions/schemas.Error'
       summary: Create a new area of interest
+      tags:
+      - me
+  /me/areas-of-interest/{area_of_interest_id}:
+    delete:
+      description: Delete an area of interest for the currently authenticated user
+      parameters:
+      - description: Area of interest ID
+        in: path
+        name: area_of_interest_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Delete an area of interest
       tags:
       - me
   /me/communities:
