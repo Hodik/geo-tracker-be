@@ -406,6 +406,173 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/communities/{id}/areas-of-interest": {
+            "get": {
+                "description": "Get areas of interest for a community",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "communities"
+                ],
+                "summary": "Get areas of interest for a community",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Community ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.AreaOfInterest"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.Error"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a new area of interest for a community by an admin",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "communities"
+                ],
+                "summary": "Create an area of interest for a community",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Community ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Create area of interest",
+                        "name": "createAreaOfInterest",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/schemas.CreateAreaOfInterest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/models.AreaOfInterest"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.Error"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/communities/{id}/areas-of-interest/{area_of_interest_id}": {
+            "delete": {
+                "description": "Delete an area of interest from a community by an admin",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "communities"
+                ],
+                "summary": "Delete an area of interest from a community",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Community ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Area of Interest ID",
+                        "name": "area_of_interest_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.Error"
+                        }
+                    }
+                }
+            }
+        },
         "/api/communities/{id}/invites": {
             "get": {
                 "description": "Get all community invites for a specific community",
@@ -1672,6 +1839,44 @@ const docTemplate = `{
                 }
             }
         },
+        "/me/areas-of-interest/{area_of_interest_id}": {
+            "delete": {
+                "description": "Delete an area of interest for the currently authenticated user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "me"
+                ],
+                "summary": "Delete an area of interest",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Area of interest ID",
+                        "name": "area_of_interest_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.Error"
+                        }
+                    }
+                }
+            }
+        },
         "/me/communities": {
             "get": {
                 "description": "Get all communities the currently authenticated user is a member of",
@@ -1828,6 +2033,12 @@ const docTemplate = `{
                 "deleted_at": {
                     "$ref": "#/definitions/gorm.DeletedAt"
                 },
+                "events": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Event"
+                    }
+                },
                 "id": {
                     "type": "string"
                 },
@@ -1835,9 +2046,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "updated_at": {
-                    "type": "string"
-                },
-                "user_id": {
                     "type": "string"
                 }
             }
@@ -1877,6 +2085,12 @@ const docTemplate = `{
                 "appears_in_search": {
                     "type": "boolean"
                 },
+                "areas_of_interest": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.AreaOfInterest"
+                    }
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -1905,9 +2119,6 @@ const docTemplate = `{
                     }
                 },
                 "name": {
-                    "type": "string"
-                },
-                "polygon_area": {
                     "type": "string"
                 },
                 "tracking_devices": {
@@ -1981,10 +2192,10 @@ const docTemplate = `{
         "models.Event": {
             "type": "object",
             "properties": {
-                "communities": {
+                "comments": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.Community"
+                        "$ref": "#/definitions/models.Comment"
                     }
                 },
                 "created_at": {
@@ -2014,12 +2225,6 @@ const docTemplate = `{
                 "latitude": {
                     "type": "number"
                 },
-                "linkedEvents": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.Event"
-                    }
-                },
                 "longitude": {
                     "type": "number"
                 },
@@ -2034,12 +2239,6 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
-                },
-                "users": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.User"
-                    }
                 }
             }
         },
@@ -2152,6 +2351,12 @@ const docTemplate = `{
         "models.User": {
             "type": "object",
             "properties": {
+                "areas_of_interest": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.AreaOfInterest"
+                    }
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -2245,8 +2450,7 @@ const docTemplate = `{
         "schemas.CreateCommunity": {
             "type": "object",
             "required": [
-                "name",
-                "polygon_area"
+                "name"
             ],
             "properties": {
                 "allow_read_only_members_add_events": {
@@ -2262,9 +2466,6 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "name": {
-                    "type": "string"
-                },
-                "polygon_area": {
                     "type": "string"
                 },
                 "tracking_devices": {
@@ -2303,6 +2504,12 @@ const docTemplate = `{
                 "title"
             ],
             "properties": {
+                "communities": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "description": {
                     "type": "string"
                 },
