@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/Hodik/geo-tracker-be/database"
+	"github.com/Hodik/geo-tracker-be/dbconn"
 	"github.com/joho/godotenv"
 )
 
@@ -11,7 +12,7 @@ func setupApp() {
 	setupEnv()
 	database.SetupDBConnection()
 	database.WaitForMigratedDB()
-	GetConfig(database.GetDB())
+	GetConfig(dbconn.GetDB())
 	log.Println("Setup complete")
 }
 

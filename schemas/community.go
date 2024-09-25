@@ -15,7 +15,6 @@ type CreateCommunity struct {
 	AppearsInSearch               *bool                 `json:"appears_in_search"`
 	IncludeExternalEvents         *bool                 `json:"include_external_events"`
 	AllowReadOnlyMembersAddEvents *bool                 `json:"allow_read_only_members_add_events"`
-	PolygonArea                   string                `json:"polygon_area" binding:"required"`
 	TrackingDevices               *[]uuid.UUID          `json:"tracking_devices"`
 }
 
@@ -98,9 +97,6 @@ func (u *UpdateCommunityInvite) ToCommunityInvite(existing *models.CommunityInvi
 }
 
 func (c *CreateCommunity) ToCommunity(db *gorm.DB) (*models.Community, error) {
-	if err := ValidatePolygonWKT(c.PolygonArea); err != nil {
-		return nil, err
-	}
 
 	if c.Type != nil {
 		if err := models.ValidateCommunityType(string(*c.Type)); err != nil {
@@ -108,65 +104,39 @@ func (c *CreateCommunity) ToCommunity(db *gorm.DB) (*models.Community, error) {
 		}
 	}
 
-	var Type models.CommunityType = models.PUBLIC
+	communityType := models.PUBLIC
 	if c.Type != nil {
-		Type = *c.Type
+		communityType = *c.Type
 	}
 
-	var IncludeExternalEvents bool
-	var AllowReadOnlyMembersAddEvents bool
-	var AppearsInSearch bool
+	// Set Flags Based on Type
+	IncludeExternalEvents := c.IncludeExternalEvents != nil && *c.IncludeExternalEvents || communityType == models.PUBLIC
+	AllowReadOnlyMembersAddEvents := c.AllowReadOnlyMembersAddEvents != nil && *c.AllowReadOnlyMembersAddEvents || communityType == models.PUBLIC
+	AppearsInSearch := c.AppearsInSearch != nil && *c.AppearsInSearch || communityType == models.PUBLIC
 
-	if c.IncludeExternalEvents != nil {
-		IncludeExternalEvents = *c.IncludeExternalEvents
-	} else {
-		if Type == models.PUBLIC {
-			IncludeExternalEvents = true
-		} else if Type == models.PRIVATE {
-			IncludeExternalEvents = false
-		}
-	}
-
-	if c.AllowReadOnlyMembersAddEvents != nil {
-		AllowReadOnlyMembersAddEvents = *c.AllowReadOnlyMembersAddEvents
-	} else {
-		if Type == models.PUBLIC {
-			AllowReadOnlyMembersAddEvents = true
-		} else if Type == models.PRIVATE {
-			AllowReadOnlyMembersAddEvents = false
-		}
-	}
-
-	if c.AppearsInSearch != nil {
-		AppearsInSearch = *c.AppearsInSearch
-	} else {
-		if Type == models.PUBLIC {
-			AppearsInSearch = true
-		} else if Type == models.PRIVATE {
-			AppearsInSearch = false
-		}
-	}
-
-	var devices []models.GPSDevice
+	var devices []*models.GPSDevice
 	if c.TrackingDevices != nil {
 		if result := db.Where("id IN ?", *c.TrackingDevices).Find(&devices); result.Error != nil {
 			return nil, result.Error
 		}
 	}
 
-	return &models.Community{Name: c.Name, Description: c.Description, Type: Type, PolygonArea: c.PolygonArea, Members: []models.CommunityMember{}, AppearsInSearch: AppearsInSearch, AllowReadOnlyMembersAddEvents: AllowReadOnlyMembersAddEvents, IncludeExternalEvents: IncludeExternalEvents, TrackingDevices: devices}, nil
+	return &models.Community{
+			Name:                          c.Name,
+			Description:                   c.Description,
+			Type:                          communityType,
+			Members:                       []*models.CommunityMember{},
+			AppearsInSearch:               &AppearsInSearch,
+			AllowReadOnlyMembersAddEvents: &AllowReadOnlyMembersAddEvents,
+			IncludeExternalEvents:         &IncludeExternalEvents,
+			TrackingDevices:               devices,
+		},
+		nil
 }
 
 func (u *UpdateCommunity) ToCommunity(existing *models.Community, user *models.User) error {
 	if !existing.IsAdmin(user) {
 		return errors.New("only admin can modify community")
-	}
-
-	if u.PolygonArea != nil {
-		if err := ValidatePolygonWKT(*u.PolygonArea); err != nil {
-			return err
-		}
-		existing.PolygonArea = *u.PolygonArea
 	}
 
 	if u.Name != nil {
@@ -178,15 +148,15 @@ func (u *UpdateCommunity) ToCommunity(existing *models.Community, user *models.U
 	}
 
 	if u.AppearsInSearch != nil {
-		existing.AppearsInSearch = *u.AppearsInSearch
+		existing.AppearsInSearch = u.AppearsInSearch
 	}
 
 	if u.IncludeExternalEvents != nil {
-		existing.IncludeExternalEvents = *u.IncludeExternalEvents
+		existing.IncludeExternalEvents = u.IncludeExternalEvents
 	}
 
 	if u.AllowReadOnlyMembersAddEvents != nil {
-		existing.AllowReadOnlyMembersAddEvents = *u.AllowReadOnlyMembersAddEvents
+		existing.AllowReadOnlyMembersAddEvents = u.AllowReadOnlyMembersAddEvents
 	}
 
 	if u.Type != nil {
@@ -198,12 +168,4 @@ func (u *UpdateCommunity) ToCommunity(existing *models.Community, user *models.U
 	}
 
 	return nil
-}
-
-func (c *CreateAreaOfInterest) ToAreaOfInterest(creator *models.User) (*models.AreaOfInterest, error) {
-	if err := ValidatePolygonWKT(c.PolygonArea); err != nil {
-		return nil, err
-	}
-
-	return &models.AreaOfInterest{UserID: creator.ID, PolygonArea: c.PolygonArea}, nil
 }

@@ -4,27 +4,31 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
+	"log"
 
+	"github.com/Hodik/geo-tracker-be/dbconn"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type Event struct {
 	Base
-	Title        string      `gorm:"not null" json:"title"`
-	Description  string      `json:"description"`
-	Type         EventType   `gorm:"type:event_type;not null;default:'other'" json:"type"`
-	Status       EventStatus `gorm:"type:event_status;not null;default:'open'" json:"status"`
-	IsPublic     bool        `gorm:"default:true;not null" json:"is_public"`
-	DeviceID     *uuid.UUID  `gorm:"index" json:"device_id"`
-	Device       *GPSDevice  `json:"device"`
-	Latitude     float64     `gorm:"not null" json:"latitude"`
-	Longitude    float64     `gorm:"not null" json:"longitude"`
-	CreatedBy    *User       `json:"-"`
-	CreatedByID  uuid.UUID   `gorm:"not null;index" json:"created_by_id"`
-	LinkedEvents []Event     `gorm:"many2many:event_linked"`
-	Communities  []Community `gorm:"many2many:event_communities"`
-	Users        []User      `gorm:"many2many:event_users"`
+	Title           string            `gorm:"not null" json:"title"`
+	Description     string            `json:"description"`
+	Type            EventType         `gorm:"type:event_type;not null;default:'other'" json:"type"`
+	Status          EventStatus       `gorm:"type:event_status;not null;default:'open'" json:"status"`
+	IsPublic        *bool             `gorm:"default:true;not null" json:"is_public"`
+	DeviceID        *uuid.UUID        `gorm:"index" json:"device_id"`
+	Device          *GPSDevice        `json:"device"`
+	Latitude        float64           `gorm:"not null" json:"latitude"`
+	Longitude       float64           `gorm:"not null" json:"longitude"`
+	CreatedBy       *User             `json:"-"`
+	CreatedByID     uuid.UUID         `gorm:"not null;index" json:"created_by_id"`
+	LinkedEvents    []*Event          `gorm:"many2many:event_linked" json:"-"`
+	Communities     []*Community      `gorm:"many2many:event_communities" json:"-"`
+	AreasOfInterest []*AreaOfInterest `gorm:"many2many:event_areas_of_interest" json:"-"`
+	Comments        []*Comment        `json:"comments"`
 }
 
 type Comment struct {
@@ -102,7 +106,7 @@ func (es *EventStatus) Scan(value interface{}) error {
 
 func (e *Event) HasAccess(db *gorm.DB, user *User, writer bool) (bool, error) {
 
-	if e.IsPublic {
+	if *e.IsPublic {
 		return true, nil
 	}
 
@@ -123,4 +127,43 @@ func (e *Event) HasAccess(db *gorm.DB, user *User, writer bool) (bool, error) {
 	}
 
 	return count > 0, nil
+}
+
+func (e *Event) AfterSave(db *gorm.DB) (err error) {
+	if *e.IsPublic {
+		go e.Populate()
+	}
+	return nil
+}
+
+func (e *Event) Populate() (err error) {
+	db := dbconn.GetDB()
+	if err := e.PopulateToAreasOfInterest(db); err != nil {
+		log.Println("Error populating event to areas of interest:", err)
+	}
+	return nil
+}
+
+func (e *Event) PopulateToAreasOfInterest(db *gorm.DB) (err error) {
+	var areasOfInterest []AreaOfInterest
+	if err := db.Where("ST_Intersects(polygon_area, " + e.GetPoint() + ")").Find(&areasOfInterest).Error; err != nil {
+		return err
+	}
+
+	if len(areasOfInterest) == 0 {
+		return nil
+	}
+
+	return db.Transaction(func(tx *gorm.DB) error {
+		for _, aoi := range areasOfInterest {
+			if err := tx.Session(&gorm.Session{SkipHooks: true}).Clauses(clause.OnConflict{DoNothing: true}).Model(&aoi).Association("Events").Append(e); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+func (e *Event) GetPoint() string {
+	return fmt.Sprintf("ST_SetSRID(ST_MakePoint(%f, %f), 4326)", e.Longitude, e.Latitude)
 }

@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/Hodik/geo-tracker-be/database"
+	"github.com/Hodik/geo-tracker-be/dbconn"
 	docs "github.com/Hodik/geo-tracker-be/docs"
 	"github.com/Hodik/geo-tracker-be/middleware"
 	"github.com/Hodik/geo-tracker-be/views"
@@ -30,7 +31,7 @@ func main() {
 		runApi()
 	case "worker":
 		setupApp()
-		PollDevices(database.GetDB())
+		PollDevices(dbconn.GetDB())
 	case "migrator":
 		setupMigrator()
 		database.SetupDB()
@@ -50,7 +51,7 @@ func runApi() {
 	// API routes with middlewares
 	api := r.Group("/api")
 	api.Use(middleware.EnsureValidToken())
-	api.Use(middleware.DBMiddleware(database.GetDB()))
+	api.Use(middleware.DBMiddleware(dbconn.GetDB()))
 	api.Use(middleware.FetchOrCreateUser)
 	{
 		users := api.Group("/users")
@@ -68,6 +69,8 @@ func runApi() {
 			me.GET("/community-invites", views.GetCommunityInvitesUser)
 			me.GET("/areas-of-interest", views.GetMyAreasOfInterest)
 			me.GET("/communities", views.GetMyCommunities)
+			me.POST("/areas-of-interest", views.CreateMyAreaOfInterest)
+			me.DELETE("/areas-of-interest/:area_of_interest_id", views.DeleteMyAreaOfInterest)
 		}
 
 		devices := api.Group("/devices")
@@ -76,11 +79,6 @@ func runApi() {
 			devices.POST("", views.CreateGPSDevice)
 			devices.PATCH("/:id", views.UpdateGPSDevice)
 			devices.GET("/:id", views.GetGPSDevice)
-		}
-
-		areasOfInterest := api.Group("/areas-of-interest")
-		{
-			areasOfInterest.POST("", views.CreateAreaOfInterest)
 		}
 
 		communities := api.Group("/communities")
@@ -98,6 +96,9 @@ func runApi() {
 			communities.POST("/:id/join", views.JoinCommunity)
 			communities.POST("/:id/leave", views.LeaveCommunity)
 			communities.GET("/:id/invites", views.GetCommunityInvitesCommunity)
+			communities.POST("/:id/areas-of-interest", views.CreateCommunityAreaOfInterest)
+			communities.DELETE("/:id/areas-of-interest/:area_of_interest_id", views.DeleteCommunityAreaOfInterest)
+			communities.GET("/:id/areas-of-interest", views.GetCommunityAreasOfInterest)
 		}
 
 		communityInvites := api.Group("/community-invites")

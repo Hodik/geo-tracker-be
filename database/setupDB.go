@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Hodik/geo-tracker-be/dbconn"
 	"github.com/Hodik/geo-tracker-be/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -42,6 +43,7 @@ func SetupDBConnection() {
 
 	log.Println("Database connected")
 
+	dbconn.SetDB(db)
 }
 
 func SetupDB() {
@@ -166,14 +168,6 @@ func CreateDBIndexes() error {
 		}
 	}
 
-	result = db.Exec("CREATE INDEX idx_community_geom ON communities USING GIST (polygon_area)")
-
-	if result.Error != nil {
-		if !strings.Contains(result.Error.Error(), "already exists") {
-			return result.Error
-		}
-	}
-
 	return nil
 }
 
@@ -206,11 +200,4 @@ func CreateEnumType(enumName string, values []string) error {
 		log.Printf("Enum type %s already exists", enumName)
 		return nil
 	}
-}
-
-func GetDB() *gorm.DB {
-	if db == nil {
-		log.Fatal("Database not initialized")
-	}
-	return db
 }

@@ -26,7 +26,7 @@ func GetEvent(c *gin.Context) {
 	eventID := c.Param("id")
 
 	var event models.Event
-	result := db.First(&event, eventID)
+	result := db.Where("id = ?", eventID).Preload("Comments").First(&event)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		c.JSON(404, gin.H{"error": "Event not found"})
@@ -113,7 +113,7 @@ func UpdateEvent(c *gin.Context) {
 	}
 
 	var event models.Event
-	result := db.First(&event, eventID)
+	result := db.Where("id = ?", eventID).First(&event)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		c.JSON(404, gin.H{"error": "Event not found"})
@@ -166,7 +166,7 @@ func DeleteEvent(c *gin.Context) {
 	eventID := c.Param("id")
 
 	var event models.Event
-	result := db.First(&event, eventID)
+	result := db.Where("id = ?", eventID).First(&event)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		c.JSON(404, gin.H{"error": "Event not found"})
@@ -217,7 +217,7 @@ func PostComment(c *gin.Context) {
 	}
 
 	var event models.Event
-	result := db.First(&event, eventID)
+	result := db.Where("id = ?", eventID).First(&event)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		c.JSON(404, gin.H{"error": "Event not found"})
@@ -266,7 +266,7 @@ func GetComments(c *gin.Context) {
 	eventID := c.Param("id")
 
 	var event models.Event
-	result := db.First(&event, eventID)
+	result := db.Where("id = ?", eventID).First(&event)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		c.JSON(404, gin.H{"error": "Event not found"})
@@ -324,7 +324,7 @@ func UpdateComment(c *gin.Context) {
 	}
 
 	var comment models.Comment
-	result := db.First(&comment, commentID)
+	result := db.Where("id = ?", commentID).First(&comment)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		c.JSON(404, gin.H{"error": "Comment not found"})
@@ -371,7 +371,7 @@ func DeleteComment(c *gin.Context) {
 	commentID := c.Param("comment_id")
 
 	var comment models.Comment
-	result := db.First(&comment, commentID)
+	result := db.Where("id = ?", commentID).First(&comment)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		c.JSON(404, gin.H{"error": "Comment not found"})

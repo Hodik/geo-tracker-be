@@ -19,16 +19,16 @@ type CommunityMember struct {
 
 type Community struct {
 	Base
-	Name                          string            `gorm:"not null;unique;index" json:"name"`
-	Description                   *string           `json:"description"`
-	Type                          CommunityType     `gorm:"type:community_type;default:'public'" json:"type"`
-	AppearsInSearch               bool              `gorm:"not null;default:true;index" json:"appears_in_search"`
-	IncludeExternalEvents         bool              `gorm:"not null;default:true" json:"include_external_events"`
-	AllowReadOnlyMembersAddEvents bool              `gorm:"not null;default:true" json:"allow_read_only_members_add_events"`
-	Members                       []CommunityMember `json:"members"`
-	Events                        []Event           `gorm:"many2many:event_communities" json:"events"`
-	PolygonArea                   string            `gorm:"type:GEOMETRY(POLYGON,4326);not null" json:"polygon_area"`
-	TrackingDevices               []GPSDevice       `gorm:"many2many:community_tracking" json:"tracking_devices"`
+	Name                          string             `gorm:"not null;unique;index" json:"name"`
+	Description                   *string            `json:"description"`
+	Type                          CommunityType      `gorm:"type:community_type;default:'public'" json:"type"`
+	AppearsInSearch               *bool              `gorm:"not null;default:true;index" json:"appears_in_search"`
+	IncludeExternalEvents         *bool              `gorm:"not null;default:true" json:"include_external_events"`
+	AllowReadOnlyMembersAddEvents *bool              `gorm:"not null;default:true" json:"allow_read_only_members_add_events"`
+	Members                       []*CommunityMember `json:"members"`
+	TrackingDevices               []*GPSDevice       `gorm:"many2many:community_tracking" json:"tracking_devices"`
+	Events                        []*Event           `gorm:"many2many:event_communities" json:"events"`
+	AreasOfInterest               []*AreaOfInterest  `gorm:"many2many:community_areas_of_interest" json:"areas_of_interest"`
 }
 
 type CommunityInvite struct {
@@ -89,7 +89,7 @@ func (mr MemberRole) Value() (driver.Value, error) {
 }
 
 func (c *Community) LoadMembers(db *gorm.DB) error {
-	var communityMembers []CommunityMember
+	var communityMembers []*CommunityMember
 	if err := db.Where("community_id = ?", c.ID).Joins("User").
 		Find(&communityMembers).Error; err != nil {
 		return nil
@@ -136,7 +136,7 @@ func (c *Community) AddMember(db *gorm.DB, user *User, role MemberRole) error {
 	}
 
 	if c.Members != nil {
-		c.Members = append(c.Members, newMember)
+		c.Members = append(c.Members, &newMember)
 	} else {
 		return c.LoadMembers(db)
 	}
@@ -172,11 +172,13 @@ func (c *Community) IsEventLinked(event *Event) bool {
 }
 
 func (community *Community) Fetch(db *gorm.DB, id string) error {
-	if err := db.Select("communities.created_at, communities.deleted_at, communities.updated_at, communities.id, communities.name, communities.description, ST_AsText(polygon_area) AS polygon_area, type").Preload("Events", func(db *gorm.DB) *gorm.DB {
+	if err := db.Select("communities.created_at, communities.deleted_at, communities.updated_at, communities.id, communities.name, communities.description, type, communities.appears_in_search, communities.include_external_events, communities.allow_read_only_members_add_events").Preload("Events", func(db *gorm.DB) *gorm.DB {
 		return db.Order("created_at DESC")
 	}).Preload("TrackingDevices", func(db *gorm.DB) *gorm.DB {
 		return db.Order("created_at DESC")
-	}).Where("communities.id = ?", id).First(&community).Error; err != nil {
+	}).Preload("AreasOfInterest", func(db *gorm.DB) *gorm.DB {
+		return db.Order("created_at DESC")
+	}).Where("communities.id = ?", id).First(community).Error; err != nil {
 		return nil
 	}
 
@@ -189,4 +191,19 @@ func ValidateCommunityType(ct string) error {
 	}
 
 	return nil
+}
+
+func (c *Community) CanAddEvent(user *User, isPublicEvent bool) bool {
+
+	if c.Type == PUBLIC && !isPublicEvent {
+		return false
+	}
+
+	if c.Type == PRIVATE {
+		if !c.IsAdmin(user) && !(c.IsMember(user) && *c.AllowReadOnlyMembersAddEvents) {
+			return false
+		}
+	}
+
+	return true
 }
