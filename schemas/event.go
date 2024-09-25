@@ -17,6 +17,7 @@ type CreateEvent struct {
 	Latitude    *float64            `json:"latitude"`
 	Longitude   *float64            `json:"longitude"`
 	DeviceID    *uuid.UUID          `json:"device_id"`
+	Communities *[]uuid.UUID        `json:"communities"`
 }
 
 type UpdateEvent struct {
@@ -87,8 +88,40 @@ func (c *CreateEvent) ToEvent(db *gorm.DB, user *models.User) (*models.Event, er
 		return nil, errors.New("latitude and longitude or device id is required")
 	}
 
-	return &models.Event{CreatedByID: user.ID, DeviceID: c.DeviceID, Latitude: Latitude, Longitude: Longitude, Title: c.Title, Description: c.Description, IsPublic: c.IsPublic, Type: EventType, Status: EventStatus}, nil
+	var communities []*models.Community
 
+	if c.Communities != nil {
+		communityIDs := make([]string, len(*c.Communities))
+		for i, id := range *c.Communities {
+			communityIDs[i] = id.String()
+		}
+		if err := db.Where("id IN (?)", communityIDs).Find(&communities).Error; err != nil {
+			return nil, err
+		}
+
+		for _, community := range communities {
+			if err := community.LoadMembers(db); err != nil { // TODO: Optimize this to load members in one query
+				return nil, err
+			}
+
+			if !community.CanAddEvent(user, c.IsPublic) {
+				return nil, errors.New("cannot add event to community " + community.Name)
+			}
+		}
+	}
+
+	return &models.Event{
+		CreatedByID: user.ID,
+		DeviceID:    c.DeviceID,
+		Latitude:    Latitude,
+		Longitude:   Longitude,
+		Title:       c.Title,
+		Description: c.Description,
+		IsPublic:    &c.IsPublic,
+		Type:        EventType,
+		Status:      EventStatus,
+		Communities: communities,
+	}, nil
 }
 
 func (u *UpdateEvent) ToEvent(db *gorm.DB, user *models.User, existing *models.Event) error {

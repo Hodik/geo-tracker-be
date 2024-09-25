@@ -13,6 +13,8 @@ type User struct {
 
 	Name          *string `json:"name"`
 	EmailVerified *bool   `json:"email_verified"`
+
+	AreasOfInterest []*AreaOfInterest `gorm:"many2many:user_areas_of_interest" json:"areas_of_interest"`
 }
 
 type UserSettings struct {
@@ -20,7 +22,7 @@ type UserSettings struct {
 	User   User      `json:"-"`
 	UserID uuid.UUID `gorm:"not null;index" json:"-"`
 
-	TrackingDevices []GPSDevice `gorm:"many2many:user_tracking" json:"tracking_devices"`
+	TrackingDevices []*GPSDevice `gorm:"many2many:user_tracking" json:"tracking_devices"`
 }
 
 type Notification struct {
@@ -28,16 +30,9 @@ type Notification struct {
 	Message string    `gorm:"not null" json:"message"`
 	User    *User     `json:"-"`
 	UserID  uuid.UUID `gorm:"not null;index" json:"user_id"`
-	Event   Event     `json:"-"`
+	Event   *Event    `json:"-"`
 	EventID uuid.UUID `gorm:"not null;index" json:"event_id"`
 	IsRead  bool      `gorm:"not null;default:false"`
-}
-
-type AreaOfInterest struct {
-	Base
-	User        *User     `json:"-"`
-	UserID      uuid.UUID `gorm:"not null;index" json:"user_id"`
-	PolygonArea string    `gorm:"type:GEOMETRY(POLYGON,4326);not null" json:"polygon_area"`
 }
 
 func GetUserSettings(db *gorm.DB, user *User) (*UserSettings, error) {

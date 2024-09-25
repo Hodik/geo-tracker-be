@@ -6,6 +6,7 @@ import (
 	"github.com/Hodik/geo-tracker-be/models"
 	"github.com/Hodik/geo-tracker-be/schemas"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -81,7 +82,7 @@ func UpdateMe(c *gin.Context) {
 // @Failure 400 {object} schemas.Error
 // @Failure 500 {object} schemas.Error
 // @Router /me/areas-of-interest [post]
-func CreateAreaOfInterest(c *gin.Context) {
+func CreateMyAreaOfInterest(c *gin.Context) {
 	user := c.MustGet("user").(*models.User)
 	db := c.MustGet("db").(*gorm.DB)
 
@@ -92,21 +93,59 @@ func CreateAreaOfInterest(c *gin.Context) {
 		return
 	}
 
-	aoiModel, err := schema.ToAreaOfInterest(user)
+	aoiModel, err := schema.ToAreaOfInterest()
 
 	if err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
 
-	result := db.Create(&aoiModel)
+	if err := db.Create(&aoiModel).Error; err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
 
-	if result.Error != nil {
-		c.JSON(500, gin.H{"error": result.Error.Error()})
+	if err := db.Model(user).Association("AreasOfInterest").Append(aoiModel); err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(201, aoiModel)
+}
+
+// DeleteAreaOfInterest godoc
+// @Summary Delete an area of interest
+// @Description Delete an area of interest for the currently authenticated user
+// @Tags me
+// @Produce json
+// @Param area_of_interest_id path string true "Area of interest ID"
+// @Success 204
+// @Failure 404 {object} schemas.Error
+// @Failure 500 {object} schemas.Error
+// @Router /me/areas-of-interest/{area_of_interest_id} [delete]
+func DeleteMyAreaOfInterest(c *gin.Context) {
+	user := c.MustGet("user").(*models.User)
+	db := c.MustGet("db").(*gorm.DB)
+
+	areaOfInterestID := c.Param("area_of_interest_id")
+
+	var count int64
+	if err := db.Table("user_areas_of_interest").Where("area_of_interest_id = ? AND user_id = ?", areaOfInterestID, user.ID).Count(&count).Error; err != nil {
+		c.JSON(500, gin.H{"error": "Failed to fetch area of interest"})
+		return
+	}
+
+	if count == 0 {
+		c.JSON(404, gin.H{"error": "Area of interest not found or doesn't belong to the user"})
+		return
+	}
+
+	if err := db.Delete(&models.AreaOfInterest{Base: models.Base{ID: uuid.MustParse(areaOfInterestID)}}).Error; err != nil {
+		c.JSON(500, gin.H{"error": "Failed to delete area of interest"})
+		return
+	}
+
+	c.Status(204)
 }
 
 // GetMyAreasOfInterest godoc
@@ -122,11 +161,18 @@ func GetMyAreasOfInterest(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 
 	var aois []models.AreaOfInterest
-	result := db.Raw("SELECT id, user_id, ST_AsText(polygon_area) as polygon_area, created_at, updated_at, deleted_at FROM area_of_interests WHERE user_id = ?", user.ID).Scan(&aois)
+	result := db.Model(&aois).Select("area_of_interests.id, ST_AsText(area_of_interests.polygon_area) as polygon_area, area_of_interests.created_at, area_of_interests.updated_at, area_of_interests.deleted_at").
+		Joins("JOIN user_areas_of_interest ON user_areas_of_interest.area_of_interest_id = area_of_interests.id").
+		Where("user_areas_of_interest.user_id = ?", user.ID).
+		Preload("Events", func(db *gorm.DB) *gorm.DB {
+			return db.Order("created_at DESC")
+		}).
+		Find(&aois)
 
 	if result.Error != nil {
 		c.JSON(500, gin.H{"error": result.Error})
 	}
+
 	c.JSON(200, aois)
 }
 

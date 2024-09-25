@@ -7,6 +7,7 @@ import (
 	"github.com/Hodik/geo-tracker-be/models"
 	"github.com/Hodik/geo-tracker-be/schemas"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -39,6 +40,8 @@ func CreateCommunity(c *gin.Context) {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
+
+	log.Println("comminuty", comminuty)
 
 	result := db.Create(&comminuty)
 
@@ -79,17 +82,14 @@ func UpdateCommunity(c *gin.Context) {
 		return
 	}
 
-	id := c.Param("id")
+	community, err := GetCommunityFromParam(c, db)
 
-	var community models.Community
-	err := community.Fetch(db, id)
-
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		c.JSON(404, gin.H{"error": "community not found"})
+	if err != nil {
+		c.JSON(404, gin.H{"error": err.Error()})
 		return
 	}
 
-	err = schema.ToCommunity(&community, user)
+	err = schema.ToCommunity(community, user)
 
 	if err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
@@ -119,13 +119,10 @@ func DeleteCommunity(c *gin.Context) {
 	user := c.MustGet("user").(*models.User)
 	db := c.MustGet("db").(*gorm.DB)
 
-	id := c.Param("id")
+	community, err := GetCommunityFromParam(c, db)
 
-	var community models.Community
-	err := community.Fetch(db, id)
-
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		c.JSON(404, gin.H{"error": "community not found"})
+	if err != nil {
+		c.JSON(404, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -157,13 +154,10 @@ func GetCommunity(c *gin.Context) {
 	user := c.MustGet("user").(*models.User)
 	db := c.MustGet("db").(*gorm.DB)
 
-	id := c.Param("id")
+	community, err := GetCommunityFromParam(c, db)
 
-	var community models.Community
-	err := community.Fetch(db, id)
-
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		c.JSON(404, gin.H{"error": "community not found"})
+	if err != nil {
+		c.JSON(404, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -172,7 +166,7 @@ func GetCommunity(c *gin.Context) {
 		return
 	}
 
-	if !community.AppearsInSearch && !community.IsMember(user) {
+	if !*community.AppearsInSearch && !community.IsMember(user) {
 		c.JSON(403, gin.H{"error": "not allowed to get community details"})
 		return
 	}
@@ -192,7 +186,7 @@ func GetCommunities(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 
 	var communities []models.Community
-	result := db.Select("communities.created_at, communities.deleted_at, communities.updated_at, communities.id, communities.name, communities.description, ST_AsText(polygon_area) AS polygon_area, type, appears_in_search").Where("deleted_at IS NULL AND appears_in_search = true").Find(&communities)
+	result := db.Select("communities.created_at, communities.deleted_at, communities.updated_at, communities.id, communities.name, communities.description, type, appears_in_search, include_external_events, allow_read_only_members_add_events").Where("deleted_at IS NULL AND appears_in_search = true").Find(&communities)
 
 	if result.Error != nil {
 		c.JSON(500, gin.H{"error": result.Error.Error()})
@@ -217,13 +211,10 @@ func JoinCommunity(c *gin.Context) {
 	user := c.MustGet("user").(*models.User)
 	db := c.MustGet("db").(*gorm.DB)
 
-	id := c.Param("id")
+	community, err := GetCommunityFromParam(c, db)
 
-	var community models.Community
-	err := community.Fetch(db, id)
-
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		c.JSON(404, gin.H{"error": "community not found"})
+	if err != nil {
+		c.JSON(404, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -265,13 +256,10 @@ func LeaveCommunity(c *gin.Context) {
 	user := c.MustGet("user").(*models.User)
 	db := c.MustGet("db").(*gorm.DB)
 
-	id := c.Param("id")
+	community, err := GetCommunityFromParam(c, db)
 
-	var community models.Community
-	err := community.Fetch(db, id)
-
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		c.JSON(404, gin.H{"error": "community not found"})
+	if err != nil {
+		c.JSON(404, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -519,13 +507,10 @@ func CommunityRemoveMember(c *gin.Context) {
 	reqUser := c.MustGet("user").(*models.User)
 	db := c.MustGet("db").(*gorm.DB)
 
-	id := c.Param("id")
+	community, err := GetCommunityFromParam(c, db)
 
-	var community models.Community
-	err := community.Fetch(db, id)
-
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		c.JSON(404, gin.H{"error": "community not found"})
+	if err != nil {
+		c.JSON(404, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -581,13 +566,10 @@ func CommunityAddEvent(c *gin.Context) {
 	reqUser := c.MustGet("user").(*models.User)
 	db := c.MustGet("db").(*gorm.DB)
 
-	id := c.Param("id")
+	community, err := GetCommunityFromParam(c, db)
 
-	var community models.Community
-	err := community.Fetch(db, id)
-
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		c.JSON(404, gin.H{"error": "community not found"})
+	if err != nil {
+		c.JSON(404, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -642,13 +624,10 @@ func CommunityRemoveEvent(c *gin.Context) {
 	reqUser := c.MustGet("user").(*models.User)
 	db := c.MustGet("db").(*gorm.DB)
 
-	id := c.Param("id")
+	community, err := GetCommunityFromParam(c, db)
 
-	var community models.Community
-	err := community.Fetch(db, id)
-
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		c.JSON(404, gin.H{"error": "community not found"})
+	if err != nil {
+		c.JSON(404, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -698,13 +677,10 @@ func CommunityTrackDevice(c *gin.Context) {
 	reqUser := c.MustGet("user").(*models.User)
 	db := c.MustGet("db").(*gorm.DB)
 
-	id := c.Param("id")
+	community, err := GetCommunityFromParam(c, db)
 
-	var community models.Community
-	err := community.Fetch(db, id)
-
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		c.JSON(404, gin.H{"error": "community not found"})
+	if err != nil {
+		c.JSON(404, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -759,13 +735,10 @@ func CommunityUntrackDevice(c *gin.Context) {
 	reqUser := c.MustGet("user").(*models.User)
 	db := c.MustGet("db").(*gorm.DB)
 
-	id := c.Param("id")
+	community, err := GetCommunityFromParam(c, db)
 
-	var community models.Community
-	err := community.Fetch(db, id)
-
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		c.JSON(404, gin.H{"error": "community not found"})
+	if err != nil {
+		c.JSON(404, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -795,4 +768,154 @@ func CommunityUntrackDevice(c *gin.Context) {
 	}
 
 	c.JSON(200, community)
+}
+
+// CreateCommunityAreaOfInterest godoc
+// @Summary Create an area of interest for a community
+// @Description Create a new area of interest for a community by an admin
+// @Tags communities
+// @Accept json
+// @Produce json
+// @Param id path string true "Community ID"
+// @Param createAreaOfInterest body schemas.CreateAreaOfInterest true "Create area of interest"
+// @Success 201 {object} models.AreaOfInterest
+// @Failure 400 {object} schemas.Error
+// @Failure 403 {object} schemas.Error
+// @Failure 404 {object} schemas.Error
+// @Failure 500 {object} schemas.Error
+// @Router /api/communities/{id}/areas-of-interest [post]
+func CreateCommunityAreaOfInterest(c *gin.Context) {
+	user := c.MustGet("user").(*models.User)
+	db := c.MustGet("db").(*gorm.DB)
+
+	community, err := GetCommunityFromParam(c, db)
+
+	if err != nil {
+		c.JSON(404, gin.H{"error": err.Error()})
+		return
+	}
+
+	if !community.IsAdmin(user) {
+		c.JSON(403, gin.H{"error": "only admin can add areas of interest to community"})
+		return
+	}
+
+	var schema schemas.CreateAreaOfInterest
+
+	if err := c.ShouldBindJSON(&schema); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	aoiModel, err := schema.ToAreaOfInterest()
+
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := db.Create(&aoiModel).Error; err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := db.Model(&community).Association("AreasOfInterest").Append(aoiModel); err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(201, aoiModel)
+}
+
+// DeleteCommunityAreaOfInterest godoc
+// @Summary Delete an area of interest from a community
+// @Description Delete an area of interest from a community by an admin
+// @Tags communities
+// @Accept json
+// @Produce json
+// @Param id path string true "Community ID"
+// @Param area_of_interest_id path string true "Area of Interest ID"
+// @Success 204
+// @Failure 403 {object} schemas.Error
+// @Failure 404 {object} schemas.Error
+// @Failure 500 {object} schemas.Error
+// @Router /api/communities/{id}/areas-of-interest/{area_of_interest_id} [delete]
+func DeleteCommunityAreaOfInterest(c *gin.Context) {
+	user := c.MustGet("user").(*models.User)
+	db := c.MustGet("db").(*gorm.DB)
+
+	community, err := GetCommunityFromParam(c, db)
+
+	if err != nil {
+		c.JSON(404, gin.H{"error": err.Error()})
+		return
+	}
+
+	if !community.IsAdmin(user) {
+		c.JSON(403, gin.H{"error": "only admin can remove areas of interest of community"})
+		return
+	}
+
+	areaOfInterestID := c.Param("area_of_interest_id")
+
+	var count int64
+	if err := db.Table("community_areas_of_interest").Where("area_of_interest_id = ? AND community_id = ?", areaOfInterestID, community.ID).Count(&count).Error; err != nil {
+		c.JSON(500, gin.H{"error": "Failed to fetch area of interest"})
+		return
+	}
+
+	if count == 0 {
+		c.JSON(404, gin.H{"error": "Area of interest not found or doesn't belong to the community"})
+		return
+	}
+
+	if err := db.Delete(&models.AreaOfInterest{Base: models.Base{ID: uuid.MustParse(areaOfInterestID)}}).Error; err != nil {
+		c.JSON(500, gin.H{"error": "Failed to delete area of interest"})
+		return
+	}
+
+	c.Status(204)
+}
+
+// GetCommunityAreasOfInterest godoc
+// @Summary Get areas of interest for a community
+// @Description Get areas of interest for a community
+// @Tags communities
+// @Produce json
+// @Param id path string true "Community ID"
+// @Success 200 {array} models.AreaOfInterest
+// @Failure 403 {object} schemas.Error
+// @Failure 404 {object} schemas.Error
+// @Failure 500 {object} schemas.Error
+// @Router /api/communities/{id}/areas-of-interest [get]
+func GetCommunityAreasOfInterest(c *gin.Context) {
+	user := c.MustGet("user").(*models.User)
+	db := c.MustGet("db").(*gorm.DB)
+
+	community, err := GetCommunityFromParam(c, db)
+
+	if err != nil {
+		c.JSON(404, gin.H{"error": err.Error()})
+		return
+	}
+
+	if !*community.AppearsInSearch && !community.IsMember(user) {
+		c.JSON(403, gin.H{"error": "not allowed to get community areas of interest"})
+		return
+	}
+
+	var aois []models.AreaOfInterest
+	result := db.Model(&aois).Select("area_of_interests.id, ST_AsText(area_of_interests.polygon_area) as polygon_area, area_of_interests.created_at, area_of_interests.updated_at, area_of_interests.deleted_at").
+		Joins("JOIN community_areas_of_interest ON community_areas_of_interest.area_of_interest_id = area_of_interests.id").
+		Where("community_areas_of_interest.community_id = ?", community.ID).
+		Preload("Events", func(db *gorm.DB) *gorm.DB {
+			return db.Order("created_at DESC")
+		}).
+		Find(&aois)
+
+	if result.Error != nil {
+		c.JSON(500, gin.H{"error": result.Error})
+	}
+
+	c.JSON(200, aois)
 }
