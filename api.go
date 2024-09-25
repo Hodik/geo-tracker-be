@@ -48,6 +48,9 @@ func runApi() {
 	// Swagger route without middlewares
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
+	// Ping route
+	r.GET("/ping", views.Ping)
+
 	// API routes with middlewares
 	api := r.Group("/api")
 	api.Use(middleware.EnsureValidToken())
