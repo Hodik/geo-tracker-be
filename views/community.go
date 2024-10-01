@@ -926,6 +926,20 @@ func GetCommunityAreasOfInterest(c *gin.Context) {
 	c.JSON(200, aois)
 }
 
+// CommunityFeed godoc
+// @Summary Get community feed
+// @Description Get the feed of events for a community
+// @Tags communities
+// @Produce json
+// @Param id path string true "Community ID"
+// @Param page query int false "Page number"
+// @Param page_size query int false "Number of items per page"
+// @Success 200 {object} schemas.Paginated
+// @Failure 400 {object} schemas.Error
+// @Failure 403 {object} schemas.Error
+// @Failure 404 {object} schemas.Error
+// @Failure 500 {object} schemas.Error
+// @Router /api/communities/{id}/feed [get]
 func CommunityFeed(c *gin.Context) {
 	user := c.MustGet("user").(*models.User)
 	db := c.MustGet("db").(*gorm.DB)

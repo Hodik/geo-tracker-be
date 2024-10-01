@@ -296,6 +296,17 @@ func GetMyCommunities(c *gin.Context) {
 	c.JSON(200, communities)
 }
 
+// MyFeed godoc
+// @Summary Get user feed
+// @Description Get the feed of events for the currently authenticated user
+// @Tags me
+// @Produce json
+// @Param page query int false "Page number"
+// @Param page_size query int false "Number of items per page"
+// @Success 200 {object} schemas.Paginated
+// @Failure 400 {object} schemas.Error
+// @Failure 500 {object} schemas.Error
+// @Router /me/feed [get]
 func MyFeed(c *gin.Context) {
 	user := c.MustGet("user").(*models.User)
 	db := c.MustGet("db").(*gorm.DB)

@@ -374,6 +374,16 @@ definitions:
       error:
         type: string
     type: object
+  schemas.Paginated:
+    properties:
+      items: {}
+      page:
+        type: integer
+      page_size:
+        type: integer
+      total:
+        type: integer
+    type: object
   schemas.TrackDevice:
     properties:
       device_id:
@@ -820,6 +830,49 @@ paths:
           schema:
             $ref: '#/definitions/schemas.Error'
       summary: Delete an area of interest from a community
+      tags:
+      - communities
+  /api/communities/{id}/feed:
+    get:
+      description: Get the feed of events for a community
+      parameters:
+      - description: Community ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Number of items per page
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.Paginated'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Get community feed
       tags:
       - communities
   /api/communities/{id}/invites:
@@ -1701,6 +1754,36 @@ paths:
           schema:
             $ref: '#/definitions/schemas.Error'
       summary: Get user communities
+      tags:
+      - me
+  /me/feed:
+    get:
+      description: Get the feed of events for the currently authenticated user
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Number of items per page
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.Paginated'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Get user feed
       tags:
       - me
   /me/track-device:
