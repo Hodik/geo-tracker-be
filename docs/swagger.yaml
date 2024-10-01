@@ -19,8 +19,14 @@ definitions:
         type: array
       id:
         type: string
+      latitude:
+        type: number
+      longitude:
+        type: number
       polygon_area:
         type: string
+      radius_in_meters:
+        type: number
       updated_at:
         type: string
     type: object
@@ -277,10 +283,14 @@ definitions:
     type: object
   schemas.CreateAreaOfInterest:
     properties:
+      latitude:
+        type: number
+      longitude:
+        type: number
       polygon_area:
         type: string
-    required:
-    - polygon_area
+      radius_in_meters:
+        type: number
     type: object
   schemas.CreateComment:
     properties:

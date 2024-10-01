@@ -814,7 +814,7 @@ func CreateCommunityAreaOfInterest(c *gin.Context) {
 		return
 	}
 
-	if err := db.Create(&aoiModel).Error; err != nil {
+	if err := aoiModel.Create(db); err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}

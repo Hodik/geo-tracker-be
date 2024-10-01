@@ -2042,8 +2042,17 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "latitude": {
+                    "type": "number"
+                },
+                "longitude": {
+                    "type": "number"
+                },
                 "polygon_area": {
                     "type": "string"
+                },
+                "radius_in_meters": {
+                    "type": "number"
                 },
                 "updated_at": {
                     "type": "string"
@@ -2427,12 +2436,18 @@ const docTemplate = `{
         },
         "schemas.CreateAreaOfInterest": {
             "type": "object",
-            "required": [
-                "polygon_area"
-            ],
             "properties": {
+                "latitude": {
+                    "type": "number"
+                },
+                "longitude": {
+                    "type": "number"
+                },
                 "polygon_area": {
                     "type": "string"
+                },
+                "radius_in_meters": {
+                    "type": "number"
                 }
             }
         },
