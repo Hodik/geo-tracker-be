@@ -74,6 +74,7 @@ func runApi() {
 			me.GET("/communities", views.GetMyCommunities)
 			me.POST("/areas-of-interest", views.CreateMyAreaOfInterest)
 			me.DELETE("/areas-of-interest/:area_of_interest_id", views.DeleteMyAreaOfInterest)
+			me.GET("/feed", views.MyFeed)
 		}
 
 		devices := api.Group("/devices")
@@ -102,6 +103,7 @@ func runApi() {
 			communities.POST("/:id/areas-of-interest", views.CreateCommunityAreaOfInterest)
 			communities.DELETE("/:id/areas-of-interest/:area_of_interest_id", views.DeleteCommunityAreaOfInterest)
 			communities.GET("/:id/areas-of-interest", views.GetCommunityAreasOfInterest)
+			communities.GET("/:id/feed", views.CommunityFeed)
 		}
 
 		communityInvites := api.Group("/community-invites")

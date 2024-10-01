@@ -3,6 +3,7 @@ package views
 import (
 	"errors"
 	"log"
+	"strconv"
 
 	"github.com/Hodik/geo-tracker-be/models"
 	"github.com/Hodik/geo-tracker-be/schemas"
@@ -795,6 +796,11 @@ func CreateCommunityAreaOfInterest(c *gin.Context) {
 		return
 	}
 
+	if !*community.IncludeExternalEvents {
+		c.JSON(403, gin.H{"error": "community does not include external events"})
+		return
+	}
+
 	if !community.IsAdmin(user) {
 		c.JSON(403, gin.H{"error": "only admin can add areas of interest to community"})
 		return
@@ -918,4 +924,81 @@ func GetCommunityAreasOfInterest(c *gin.Context) {
 	}
 
 	c.JSON(200, aois)
+}
+
+// CommunityFeed godoc
+// @Summary Get community feed
+// @Description Get the feed of events for a community
+// @Tags communities
+// @Produce json
+// @Param id path string true "Community ID"
+// @Param page query int false "Page number"
+// @Param page_size query int false "Number of items per page"
+// @Success 200 {object} schemas.Paginated
+// @Failure 400 {object} schemas.Error
+// @Failure 403 {object} schemas.Error
+// @Failure 404 {object} schemas.Error
+// @Failure 500 {object} schemas.Error
+// @Router /api/communities/{id}/feed [get]
+func CommunityFeed(c *gin.Context) {
+	user := c.MustGet("user").(*models.User)
+	db := c.MustGet("db").(*gorm.DB)
+
+	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
+
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	pageSize, err := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	community, err := GetCommunityFromParam(c, db)
+
+	if err != nil {
+		c.JSON(404, gin.H{"error": err.Error()})
+		return
+	}
+
+	if !*community.AppearsInSearch && !community.IsMember(user) {
+		c.JSON(403, gin.H{"error": "not allowed to get community feed"})
+		return
+	}
+
+	query := `
+		SELECT events.*
+		FROM events
+		LEFT JOIN event_areas_of_interest eaoi ON eaoi.event_id = events.id
+		LEFT JOIN community_areas_of_interest caoi ON caoi.area_of_interest_id = eaoi.area_of_interest_id
+		WHERE caoi.community_id = ?
+		UNION
+		SELECT events.*
+		FROM events
+		LEFT JOIN event_communities ec on ec.event_id = events.id
+		WHERE ec.community_id = ?
+		ORDER BY created_at DESC
+	`
+
+	countQuery := `SELECT COUNT(*) FROM (` + query + `)`
+	paginatedQuery := query + `LIMIT ? OFFSET ?`
+
+	var total int64
+	if err := db.Raw(countQuery, community.ID, community.ID).Count(&total).Error; err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	var events []models.Event
+	if err := db.Raw(paginatedQuery, community.ID, community.ID, pageSize, (page-1)*pageSize).Scan(&events).Error; err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	paginated := schemas.Paginated{Page: page, PageSize: pageSize, Total: int(total), Items: events}
+	c.JSON(200, paginated)
 }

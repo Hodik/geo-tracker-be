@@ -2,6 +2,7 @@ package views
 
 import (
 	"errors"
+	"strconv"
 
 	"github.com/Hodik/geo-tracker-be/models"
 	"github.com/Hodik/geo-tracker-be/schemas"
@@ -293,4 +294,65 @@ func GetMyCommunities(c *gin.Context) {
 	}
 
 	c.JSON(200, communities)
+}
+
+// MyFeed godoc
+// @Summary Get user feed
+// @Description Get the feed of events for the currently authenticated user
+// @Tags me
+// @Produce json
+// @Param page query int false "Page number"
+// @Param page_size query int false "Number of items per page"
+// @Success 200 {object} schemas.Paginated
+// @Failure 400 {object} schemas.Error
+// @Failure 500 {object} schemas.Error
+// @Router /me/feed [get]
+func MyFeed(c *gin.Context) {
+	user := c.MustGet("user").(*models.User)
+	db := c.MustGet("db").(*gorm.DB)
+
+	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
+
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	pageSize, err := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	query := `
+		SELECT events.*
+		FROM events
+		LEFT JOIN event_areas_of_interest eaoi ON eaoi.event_id = events.id
+		LEFT JOIN user_areas_of_interest uaoi ON uaoi.area_of_interest_id = eaoi.area_of_interest_id
+		WHERE uaoi.user_id = ?
+		UNION
+		SELECT events.*
+		FROM events
+		WHERE events.created_by_id = ?
+		ORDER BY created_at DESC
+	`
+
+	countQuery := `SELECT COUNT(*) FROM (` + query + `)`
+	paginatedQuery := query + `LIMIT ? OFFSET ?`
+
+	var total int64
+	if err := db.Raw(countQuery, user.ID, user.ID).Count(&total).Error; err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	var events []models.Event
+	if err := db.Raw(paginatedQuery, user.ID, user.ID, pageSize, (page-1)*pageSize).Scan(&events).Error; err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	paginated := schemas.Paginated{Page: page, PageSize: pageSize, Total: int(total), Items: events}
+	c.JSON(200, paginated)
 }
