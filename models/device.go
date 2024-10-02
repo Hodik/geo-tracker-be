@@ -14,6 +14,8 @@ type GPSDevice struct {
 	Locations   []GPSLocation `gorm:"foreignKey:DeviceID" json:"locations"`
 	CreatedByID *uuid.UUID    `gorm:"index" json:"created_by"`
 	CreatedBY   *User         `json:"-"`
+	Name        *string       `json:"name"`
+	Description *string       `json:"description"`
 }
 
 type GPSLocation struct {
