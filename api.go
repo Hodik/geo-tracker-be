@@ -121,6 +121,7 @@ func runApi() {
 			events.DELETE("/:id", views.DeleteEvent)
 			events.POST("/:id/comment", views.PostComment)
 			events.GET("/:id/comments", views.GetComments)
+			events.POST("/from-area", views.GetEventsInArea)
 		}
 
 		comments := api.Group("/comments")

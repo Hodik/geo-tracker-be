@@ -1,6 +1,9 @@
 package models
 
 import (
+	"errors"
+	"fmt"
+
 	"gorm.io/gorm"
 )
 
@@ -14,8 +17,9 @@ type AreaOfInterest struct {
 }
 
 func (a *AreaOfInterest) PopulateEvents(db *gorm.DB) (err error) {
-	var events []*Event
-	if err := db.Where("ST_Intersects(ST_SetSRID(ST_GeomFromText(?), 4326), ST_SetSRID(ST_MakePoint(longitude, latitude), 4326))", a.PolygonArea).Order("created_at DESC").Find(&events).Error; err != nil {
+	events, err := a.GetEvents(db)
+
+	if err != nil {
 		return err
 	}
 
@@ -24,6 +28,29 @@ func (a *AreaOfInterest) PopulateEvents(db *gorm.DB) (err error) {
 	}
 
 	return nil
+}
+
+func (a *AreaOfInterest) GetEvents(db *gorm.DB) (events []*Event, err error) {
+	geometry, err := a.GetGeometry()
+	if err != nil {
+		return nil, err
+	}
+
+	if err := db.Where("ST_Intersects(" + geometry + ", ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)) AND is_public = true").Order("created_at DESC").Find(&events).Error; err != nil {
+		return nil, err
+	}
+
+	return events, nil
+}
+
+func (a *AreaOfInterest) GetGeometry() (geometry string, err error) {
+	if a.PolygonArea != nil {
+		return fmt.Sprintf("ST_SetSRID(ST_GeomFromText('%s'), 4326)", *a.PolygonArea), nil
+	} else if a.Latitude != nil && a.Longitude != nil && a.RadiusInMeters != nil {
+		return fmt.Sprintf("ST_Buffer(ST_SetSRID(ST_MakePoint(%f, %f), 4326)::geography, %f)::geometry", *a.Longitude, *a.Latitude, *a.RadiusInMeters), nil
+	}
+
+	return "", errors.New("no geometry found")
 }
 
 func (a *AreaOfInterest) AfterCreate(tx *gorm.DB) (err error) {

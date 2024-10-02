@@ -1552,6 +1552,36 @@ paths:
       summary: Post a comment on an event
       tags:
       - comments
+  /api/events/from-area:
+    post:
+      description: Get events in an area by its ID
+      parameters:
+      - description: Create area of interest
+        in: body
+        name: createAreaOfInterest
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.CreateAreaOfInterest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Event'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/schemas.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schemas.Error'
+      summary: Get events in an area
+      tags:
+      - events
   /api/me/community-invites:
     get:
       description: Get all community invites for the currently authenticated user

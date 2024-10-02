@@ -395,3 +395,39 @@ func DeleteComment(c *gin.Context) {
 
 	c.Status(204)
 }
+
+// GetEventsInArea godoc
+// @Summary Get events in an area
+// @Description Get events in an area by its ID
+// @Tags events
+// @Produce json
+// @Param createAreaOfInterest body schemas.CreateAreaOfInterest true "Create area of interest"
+// @Success 200 {array} models.Event
+// @Failure 400 {object} schemas.Error
+// @Failure 500 {object} schemas.Error
+// @Router /api/events/from-area [post]
+func GetEventsInArea(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+
+	var schema schemas.CreateAreaOfInterest
+
+	if err := c.ShouldBindJSON(&schema); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	aoiModel, err := schema.ToAreaOfInterest()
+
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	events, err := aoiModel.GetEvents(db)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, events)
+}
