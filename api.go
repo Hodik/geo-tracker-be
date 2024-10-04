@@ -43,7 +43,7 @@ func main() {
 func runApi() {
 	r := gin.Default()
 
-	docs.SwaggerInfo.BasePath = "/api"
+	docs.SwaggerInfo.BasePath = ""
 
 	// Swagger route without middlewares
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
@@ -122,6 +122,7 @@ func runApi() {
 			events.POST("/:id/comment", views.PostComment)
 			events.GET("/:id/comments", views.GetComments)
 			events.POST("/from-area", views.GetEventsInArea)
+			events.POST("/:id/media", views.UploadMedia)
 		}
 
 		comments := api.Group("/comments")

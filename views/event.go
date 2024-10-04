@@ -2,9 +2,13 @@ package views
 
 import (
 	"errors"
+	"log"
+	"sync"
 
+	"github.com/Hodik/geo-tracker-be/config"
 	"github.com/Hodik/geo-tracker-be/models"
 	"github.com/Hodik/geo-tracker-be/schemas"
+	"github.com/Hodik/geo-tracker-be/storage"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -26,7 +30,7 @@ func GetEvent(c *gin.Context) {
 	eventID := c.Param("id")
 
 	var event models.Event
-	result := db.Where("id = ?", eventID).Preload("Comments").First(&event)
+	result := db.Where("id = ?", eventID).Preload("Comments").Preload("MediaFiles").First(&event)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		c.JSON(404, gin.H{"error": "Event not found"})
@@ -47,6 +51,40 @@ func GetEvent(c *gin.Context) {
 	if !hasAccess {
 		c.JSON(403, gin.H{"error": "User does not have access to this event"})
 		return
+	}
+
+	if len(event.MediaFiles) > 0 {
+		conf := config.GetConfig(db)
+		var wg sync.WaitGroup
+		var mu sync.Mutex
+		log.Println("Generating presigned urls for", len(event.MediaFiles), "media files")
+		urls := make([]*models.PresignedUrl, 0, len(event.MediaFiles))
+		errChan := make(chan error, len(event.MediaFiles))
+
+		for _, mediaFile := range event.MediaFiles {
+			wg.Add(1)
+			go func(file *models.MediaFile) {
+				defer wg.Done()
+				url, err := storage.ViewPresignedUrl(file.Key, conf.MediaBucketName)
+				if err != nil {
+					errChan <- err
+					return
+				}
+				mu.Lock()
+				urls = append(urls, &models.PresignedUrl{Key: file.Key, URL: url})
+				mu.Unlock()
+			}(mediaFile)
+		}
+
+		wg.Wait()
+
+		if len(errChan) > 0 {
+			c.JSON(500, gin.H{"error": <-errChan})
+			return
+		}
+
+		event.MediaPresignedUrls = urls
+
 	}
 
 	c.JSON(200, event)
@@ -430,4 +468,67 @@ func GetEventsInArea(c *gin.Context) {
 	}
 
 	c.JSON(200, events)
+}
+
+// UploadMedia godoc
+// @Summary Upload media to an event
+// @Description Upload media to an event by its ID
+// @Tags events
+// @Accept multipart/form-data
+// @Produce json
+// @Param id path string true "Event ID"
+// @Param file formData file true "File to upload"
+// @Success 201 {object} models.MediaFile
+// @Failure 400 {object} schemas.Error
+// @Failure 403 {object} schemas.Error
+// @Failure 404 {object} schemas.Error
+// @Failure 500 {object} schemas.Error
+// @Router /api/events/{id}/media [post]
+func UploadMedia(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+	user := c.MustGet("user").(*models.User)
+	eventID := c.Param("id")
+
+	var event models.Event
+	result := db.Where("id = ?", eventID).First(&event)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		c.JSON(404, gin.H{"error": "Event not found"})
+		return
+	}
+
+	if result.Error != nil {
+		c.JSON(500, gin.H{"error": result.Error})
+		return
+	}
+
+	if event.CreatedByID != user.ID {
+		c.JSON(403, gin.H{"error": "User does not have access to this event"})
+		return
+	}
+
+	file, err := c.FormFile("file")
+
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	conf := config.GetConfig(db)
+	key := event.GetMediaKey(file.Filename)
+	s3Result, err := storage.UploadFile(file, key, conf.MediaBucketName)
+
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	if errors.Is(db.Model(&models.MediaFile{}).Where("key = ?", key).First(&models.MediaFile{}).Error, gorm.ErrRecordNotFound) {
+		if err := db.Model(&event).Association("MediaFiles").Append(&models.MediaFile{Key: key}); err != nil {
+			c.JSON(500, gin.H{"error": err.Error()})
+			return
+		}
+	}
+
+	c.JSON(201, s3Result)
 }

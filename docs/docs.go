@@ -1708,6 +1708,69 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/events/{id}/media": {
+            "post": {
+                "description": "Upload media to an event by its ID",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "events"
+                ],
+                "summary": "Upload media to an event",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Event ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "File to upload",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/models.MediaFile"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.Error"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.Error"
+                        }
+                    }
+                }
+            }
+        },
         "/api/me/community-invites": {
             "get": {
                 "description": "Get all community invites for the currently authenticated user",
@@ -2394,6 +2457,12 @@ const docTemplate = `{
                 "longitude": {
                     "type": "number"
                 },
+                "media_presigned_urls": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.PresignedUrl"
+                    }
+                },
                 "status": {
                     "$ref": "#/definitions/models.EventStatus"
                 },
@@ -2451,6 +2520,9 @@ const docTemplate = `{
                 "deleted_at": {
                     "$ref": "#/definitions/gorm.DeletedAt"
                 },
+                "description": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "string"
                 },
@@ -2462,6 +2534,9 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/models.GPSLocation"
                     }
+                },
+                "name": {
+                    "type": "string"
                 },
                 "number": {
                     "type": "string"
@@ -2503,6 +2578,26 @@ const docTemplate = `{
                 }
             }
         },
+        "models.MediaFile": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "deleted_at": {
+                    "$ref": "#/definitions/gorm.DeletedAt"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "key": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
         "models.MemberRole": {
             "type": "string",
             "enum": [
@@ -2513,6 +2608,17 @@ const docTemplate = `{
                 "ADMIN",
                 "READ_ONLY"
             ]
+        },
+        "models.PresignedUrl": {
+            "type": "object",
+            "properties": {
+                "key": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
         },
         "models.User": {
             "type": "object",
@@ -2711,7 +2817,13 @@ const docTemplate = `{
         "schemas.CreateGPSDevice": {
             "type": "object",
             "properties": {
+                "description": {
+                    "type": "string"
+                },
                 "imei": {
+                    "type": "string"
+                },
+                "name": {
                     "type": "string"
                 },
                 "number": {
@@ -2827,7 +2939,13 @@ const docTemplate = `{
         "schemas.UpdateGPSDevice": {
             "type": "object",
             "properties": {
+                "description": {
+                    "type": "string"
+                },
                 "imei": {
+                    "type": "string"
+                },
+                "name": {
                     "type": "string"
                 },
                 "number": {
