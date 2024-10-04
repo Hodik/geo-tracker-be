@@ -63,3 +63,9 @@ variable "auth0_audience" {
   description = "Auth0 client id for auth"
   default     = "mNOR3o8CwsHc6WZiP6mZGQdUDiNshVXb"
 }
+
+
+variable "media_s3" {
+  description = "S3 bucket for media"
+  default     = "geotracker-media"
+}

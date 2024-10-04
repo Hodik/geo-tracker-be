@@ -14,21 +14,23 @@ import (
 
 type Event struct {
 	Base
-	Title           string            `gorm:"not null" json:"title"`
-	Description     string            `json:"description"`
-	Type            EventType         `gorm:"type:event_type;not null;default:'other'" json:"type"`
-	Status          EventStatus       `gorm:"type:event_status;not null;default:'open'" json:"status"`
-	IsPublic        *bool             `gorm:"default:true;not null" json:"is_public"`
-	DeviceID        *uuid.UUID        `gorm:"index" json:"device_id"`
-	Device          *GPSDevice        `json:"device"`
-	Latitude        float64           `gorm:"not null" json:"latitude"`
-	Longitude       float64           `gorm:"not null" json:"longitude"`
-	CreatedBy       *User             `json:"-"`
-	CreatedByID     uuid.UUID         `gorm:"not null;index" json:"created_by_id"`
-	LinkedEvents    []*Event          `gorm:"many2many:event_linked" json:"-"`
-	Communities     []*Community      `gorm:"many2many:event_communities" json:"-"`
-	AreasOfInterest []*AreaOfInterest `gorm:"many2many:event_areas_of_interest" json:"-"`
-	Comments        []*Comment        `json:"comments"`
+	Title              string            `gorm:"not null" json:"title"`
+	Description        string            `json:"description"`
+	Type               EventType         `gorm:"type:event_type;not null;default:'other'" json:"type"`
+	Status             EventStatus       `gorm:"type:event_status;not null;default:'open'" json:"status"`
+	IsPublic           *bool             `gorm:"default:true;not null" json:"is_public"`
+	DeviceID           *uuid.UUID        `gorm:"index" json:"device_id"`
+	Device             *GPSDevice        `json:"device"`
+	Latitude           float64           `gorm:"not null" json:"latitude"`
+	Longitude          float64           `gorm:"not null" json:"longitude"`
+	CreatedBy          *User             `json:"-"`
+	CreatedByID        uuid.UUID         `gorm:"not null;index" json:"created_by_id"`
+	LinkedEvents       []*Event          `gorm:"many2many:event_linked" json:"-"`
+	Communities        []*Community      `gorm:"many2many:event_communities" json:"-"`
+	AreasOfInterest    []*AreaOfInterest `gorm:"many2many:event_areas_of_interest" json:"-"`
+	Comments           []*Comment        `json:"comments"`
+	MediaFiles         []*MediaFile      `gorm:"many2many:event_media_files" json:"-"`
+	MediaPresignedUrls []*PresignedUrl   `gorm:"-" json:"media_presigned_urls"`
 }
 
 type Comment struct {
@@ -166,4 +168,8 @@ func (e *Event) PopulateToAreasOfInterest(db *gorm.DB) (err error) {
 
 func (e *Event) GetPoint() string {
 	return fmt.Sprintf("ST_SetSRID(ST_MakePoint(%f, %f), 4326)", e.Longitude, e.Latitude)
+}
+
+func (c *Event) GetMediaKey(filename string) string {
+	return fmt.Sprintf("events/%s/%s", c.ID, filename)
 }

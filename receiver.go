@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/Hodik/geo-tracker-be/config"
 	"github.com/Hodik/geo-tracker-be/models"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -99,7 +100,7 @@ func PollDevices(db *gorm.DB) {
 			}()
 		}
 
-		conf := GetConfig(db)
+		conf := config.GetConfig(db)
 		log.Default().Println("Sleeping for ", conf.PollInterval, " seconds")
 		time.Sleep(time.Duration(conf.PollInterval) * time.Second)
 	}

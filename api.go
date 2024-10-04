@@ -122,6 +122,7 @@ func runApi() {
 			events.POST("/:id/comment", views.PostComment)
 			events.GET("/:id/comments", views.GetComments)
 			events.POST("/from-area", views.GetEventsInArea)
+			events.POST("/:id/media", views.UploadMedia)
 		}
 
 		comments := api.Group("/comments")

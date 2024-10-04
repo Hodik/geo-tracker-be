@@ -94,6 +94,7 @@ func SetupDB() {
 		&models.Migration{},
 		&models.CommunityInvite{},
 		&models.CommunityMember{},
+		&models.MediaFile{},
 	)
 
 	if err != nil {
