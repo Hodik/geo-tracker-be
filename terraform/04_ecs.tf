@@ -15,6 +15,7 @@ locals {
     port                  = var.api_port
     AWS_ACCESS_KEY_ID     = var.aws_access_key_id
     AWS_SECRET_ACCESS_KEY = var.aws_secret_access_key
+    AWS_REGION            = var.region
     auth0_audience        = var.auth0_audience
     auth0_domain          = var.auth0_domain
   }
