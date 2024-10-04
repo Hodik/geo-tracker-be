@@ -470,6 +470,20 @@ func GetEventsInArea(c *gin.Context) {
 	c.JSON(200, events)
 }
 
+// UploadMedia godoc
+// @Summary Upload media to an event
+// @Description Upload media to an event by its ID
+// @Tags events
+// @Accept multipart/form-data
+// @Produce json
+// @Param id path string true "Event ID"
+// @Param file formData file true "File to upload"
+// @Success 201 {object} models.MediaFile
+// @Failure 400 {object} schemas.Error
+// @Failure 403 {object} schemas.Error
+// @Failure 404 {object} schemas.Error
+// @Failure 500 {object} schemas.Error
+// @Router /api/events/{id}/media [post]
 func UploadMedia(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 	user := c.MustGet("user").(*models.User)
