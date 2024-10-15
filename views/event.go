@@ -328,7 +328,7 @@ func GetComments(c *gin.Context) {
 	}
 
 	var comments []models.Comment
-	if err := db.Where("event_id = ?", eventID).Order("created_at DESC").Find(&comments).Error; err != nil {
+	if err := db.Where("event_id = ?", eventID).Order("created_at DESC").Joins("CreatedBy").Find(&comments).Error; err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}

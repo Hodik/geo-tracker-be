@@ -2288,6 +2288,9 @@ const docTemplate = `{
                 "created_at": {
                     "type": "string"
                 },
+                "created_by": {
+                    "$ref": "#/definitions/models.User"
+                },
                 "created_by_id": {
                     "type": "string"
                 },

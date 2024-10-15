@@ -36,7 +36,7 @@ type Event struct {
 type Comment struct {
 	Base
 	Content     string    `gorm:"not null" json:"content"`
-	CreatedBy   *User     `json:"-"`
+	CreatedBy   *User     `json:"created_by"`
 	CreatedByID uuid.UUID `gorm:"not null;index" json:"created_by_id"`
 	Event       Event     `json:"-"`
 	EventID     uuid.UUID `gorm:"not null;index" json:"event_id"`
