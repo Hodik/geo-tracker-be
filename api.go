@@ -119,7 +119,7 @@ func runApi() {
 			events.PATCH("/:id", views.UpdateEvent)
 			events.GET("/:id", views.GetEvent)
 			events.DELETE("/:id", views.DeleteEvent)
-			events.POST("/:id/comment", views.PostComment)
+			events.POST("/:id/comments", views.PostComment)
 			events.GET("/:id/comments", views.GetComments)
 			events.POST("/from-area", views.GetEventsInArea)
 			events.POST("/:id/media", views.UploadMedia)
